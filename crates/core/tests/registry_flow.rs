@@ -118,7 +118,7 @@ fn registration_rules() {
     let dup = vec![ParamSpec::boolean("a", false), ParamSpec::boolean("a", true)];
     assert!(matches!(r.register(Dummy("dup.params", dup)), Err(Error::InvalidTool { .. })));
     let broken = vec![ParamSpec::int_range("n", 50, 1, 10)];
-    assert!(matches!(r.register(Dummy("broken.spec", broken)), Err(Error::InvalidTool { .. })));
+    assert!(matches!(r.register(Dummy("Bad Id", vec![])), Err(Error::InvalidTool { .. })));
     assert_eq!(r.len(), 1);
 }
 

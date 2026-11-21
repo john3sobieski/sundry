@@ -39,6 +39,42 @@ impl Category {
     }
 }
 
+/// What input a tool reads. The UI shows only the matching input controls and
+/// the CLI rejects input the tool would ignore.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+pub enum InputKind {
+    /// The tool works from its parameters alone.
+    None,
+    /// Typed or piped text.
+    Text,
+    /// Files only.
+    Files,
+    /// Text or files.
+    #[default]
+    Any,
+}
+
+impl InputKind {
+    /// Stable key for the UI.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            InputKind::None => "none",
+            InputKind::Text => "text",
+            InputKind::Files => "files",
+            InputKind::Any => "any",
+        }
+    }
+
+    pub fn accepts_text(self) -> bool {
+        matches!(self, InputKind::Text | InputKind::Any)
+    }
+
+    pub fn accepts_files(self) -> bool {
+        matches!(self, InputKind::Files | InputKind::Any)
+    }
+}
+
 /// Static description of a tool. `name` and `description` are English
 /// fallbacks; the UI localizes by `id` (keys like `tool.<id>.name`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,6 +83,7 @@ pub struct ToolInfo {
     pub name: String,
     pub description: String,
     pub category: Category,
+    pub input: InputKind,
 }
 
 impl ToolInfo {
@@ -56,7 +93,19 @@ impl ToolInfo {
         name: impl Into<String>,
         description: impl Into<String>,
     ) -> Self {
-        Self { id: id.into(), name: name.into(), description: description.into(), category }
+        Self {
+            id: id.into(),
+            name: name.into(),
+            description: description.into(),
+            category,
+            input: InputKind::Any,
+        }
+    }
+
+    /// Declares what input the tool reads (default: `InputKind::Any`).
+    pub fn with_input(mut self, input: InputKind) -> Self {
+        self.input = input;
+        self
     }
 }
 
@@ -83,5 +132,16 @@ mod tests {
         keys.sort_unstable();
         keys.dedup();
         assert_eq!(keys.len(), Category::ALL.len());
+    }
+
+    #[test]
+    fn input_kinds_say_what_they_accept() {
+        assert!(!InputKind::None.accepts_text() && !InputKind::None.accepts_files());
+        assert!(InputKind::Text.accepts_text() && !InputKind::Text.accepts_files());
+        assert!(!InputKind::Files.accepts_text() && InputKind::Files.accepts_files());
+        assert!(InputKind::Any.accepts_text() && InputKind::Any.accepts_files());
+        assert_eq!(ToolInfo::new("a", Category::Dev, "A", "").input, InputKind::Any);
+        let info = ToolInfo::new("a", Category::Dev, "A", "").with_input(InputKind::None);
+        assert_eq!(info.input, InputKind::None);
     }
 }

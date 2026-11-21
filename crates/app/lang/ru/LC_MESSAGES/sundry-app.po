@@ -129,3 +129,45 @@ msgstr "(пустой результат)"
 
 msgid "The result is binary data; saving files is not implemented yet."
 msgstr "Результат состоит из бинарных данных; сохранение файлов пока не реализовано."
+
+msgid "Type text"
+msgstr "Введите текст"
+
+msgid "bit"
+msgstr "бит"
+
+msgid "B"
+msgstr "Б"
+
+msgid "kbit"
+msgstr "кбит"
+
+msgid "Mbit"
+msgstr "Мбит"
+
+msgid "Gbit"
+msgstr "Гбит"
+
+msgid "kB"
+msgstr "кБ"
+
+msgid "MB"
+msgstr "МБ"
+
+msgid "GB"
+msgstr "ГБ"
+
+msgid "TB"
+msgstr "ТБ"
+
+msgid "KiB"
+msgstr "КиБ"
+
+msgid "MiB"
+msgstr "МиБ"
+
+msgid "GiB"
+msgstr "ГиБ"
+
+msgid "TiB"
+msgstr "ТиБ"

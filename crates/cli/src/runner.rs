@@ -3,7 +3,9 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use sundry_core::{Error, Input, Item, Job, Output, ParamKind, ParamSpec, Params, Registry, Value};
+use sundry_core::{
+    Error, Input, InputKind, Item, Job, Output, ParamKind, ParamSpec, Params, Registry, Value,
+};
 
 use crate::Io;
 use crate::args::{InputSource, RawParam, RunArgs};
@@ -12,9 +14,24 @@ use crate::error::CliError;
 pub fn run_tool(registry: &Registry, args: &RunArgs, io: &mut Io<'_>) -> Result<(), CliError> {
     let entry = registry.get(&args.tool)?;
     let params = build_params(entry.params(), &args.params)?;
+    check_input_kind(&entry.info().id, entry.info().input, &args.inputs)?;
     let input = read_input(&args.inputs, &mut *io.stdin)?;
     let output = registry.run(&args.tool, &input, &params, &Job::new())?;
     emit(&output, args.output.as_deref(), args.force, &mut *io.stdout)
+}
+
+/// Rejects input that the tool would ignore.
+fn check_input_kind(id: &str, kind: InputKind, sources: &[InputSource]) -> Result<(), CliError> {
+    let has_text = sources.iter().any(|s| matches!(s, InputSource::Text(_)));
+    let has_files = sources.iter().any(|s| matches!(s, InputSource::File(_)));
+    let problem = match kind {
+        _ if sources.is_empty() => return Ok(()),
+        InputKind::None => "takes no input",
+        InputKind::Text if has_files => "takes text input only (-t or -i -)",
+        InputKind::Files if has_text => "takes files only (-i)",
+        _ => return Ok(()),
+    };
+    Err(CliError::Usage(format!("tool `{id}` {problem}")))
 }
 
 fn build_params(specs: &[ParamSpec], raw: &[RawParam]) -> Result<Params, CliError> {

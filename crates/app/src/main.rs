@@ -10,8 +10,8 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use sundry_core::{
-    Category, Error, Input, Item, Job, Language, ParamKind, ParamSpec, Params, Registry, Settings,
-    Tool, Value, logging, params, settings,
+    Category, Error, Input, InputKind, Item, Job, Language, ParamKind, ParamSpec, Params, Registry,
+    Settings, Tool, Value, logging, params, settings,
 };
 
 slint::include_modules!();
@@ -99,6 +99,7 @@ impl Shell {
                     id: info.id.as_str().into(),
                     name: info.name.as_str().into(),
                     description: info.description.as_str().into(),
+                    input: info.input.as_str().into(),
                 }
             })
             .collect();
@@ -114,6 +115,9 @@ impl Shell {
                 return;
             }
         };
+        if !entry.info().input.accepts_files() {
+            self.clear_files();
+        }
         let specs = entry.params().to_vec();
         let values = specs.iter().map(|s| Some(s.default_value())).collect();
         self.fields.set_vec(specs.iter().map(field_of).collect::<Vec<_>>());
@@ -150,7 +154,16 @@ impl Shell {
         self.form.borrow().is_valid()
     }
 
+    /// What input the open tool reads.
+    fn input_kind(&self) -> InputKind {
+        let form = self.form.borrow();
+        self.registry.get(&form.tool_id).map(|e| e.info().input).unwrap_or_default()
+    }
+
     fn add_files(&self, paths: Vec<PathBuf>) {
+        if !self.input_kind().accepts_files() {
+            return;
+        }
         let mut files = self.files.borrow_mut();
         for path in paths.into_iter().filter(|p| p.is_file()) {
             if !files.contains(&path) {
@@ -199,8 +212,11 @@ impl Shell {
         ui.set_result_kind("".into());
         ui.set_running(true);
 
-        let text = ui.get_input_text().to_string();
-        let files = self.files.borrow().clone();
+        // Input the tool does not read is left out, even if it is still in the window.
+        let kind = self.input_kind();
+        let text =
+            if kind.accepts_text() { ui.get_input_text().to_string() } else { String::new() };
+        let files = if kind.accepts_files() { self.files.borrow().clone() } else { Vec::new() };
         let weak = ui.as_weak();
         std::thread::spawn(move || {
             let outcome = run_blocking(&*tool, &resolved, &text, &files, &job);
@@ -447,7 +463,10 @@ fn load_settings() -> Settings {
 /// Connects dropped files, run and cancel to the shell.
 fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
     let api = ui.global::<DropApi>();
-    api.on_can_drop(|data| !paths_of(&data).is_empty());
+    api.on_can_drop({
+        let shell = Rc::clone(shell);
+        move |data| shell.input_kind().accepts_files() && !paths_of(&data).is_empty()
+    });
     api.on_dropped({
         let shell = Rc::clone(shell);
         move |data| shell.add_files(paths_of(&data))

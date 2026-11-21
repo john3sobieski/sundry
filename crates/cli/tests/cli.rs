@@ -296,3 +296,15 @@ fn built_in_data_converter_works_end_to_end() {
     assert_eq!(out.code, 2);
     assert!(cli_with(&registry, &["list", "-c", "convert"], b"").out().contains("convert.data"));
 }
+
+#[test]
+fn input_is_checked_against_what_the_tool_reads() {
+    let registry = sundry_cli::builtin::registry().unwrap();
+    let out = cli_with(&registry, &["convert.data", "-t", "15"], b"");
+    assert_eq!(out.code, 2);
+    assert!(out.stderr.contains("takes no input"));
+    let out = cli_with(&registry, &["convert.data", "-i", "-"], b"x");
+    assert_eq!(out.code, 2);
+    let info = cli_with(&registry, &["info", "convert.data"], b"");
+    assert!(info.out().contains("Usage: sundry convert.data [-p NAME=VALUE]... [-o PATH]"));
+}

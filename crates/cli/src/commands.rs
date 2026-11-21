@@ -3,7 +3,7 @@
 use std::fmt::Display;
 use std::io::Write;
 
-use sundry_core::{Category, ParamKind, ParamSpec, Registry, ToolEntry};
+use sundry_core::{Category, InputKind, ParamKind, ParamSpec, Registry, ToolEntry};
 
 use crate::error::CliError;
 
@@ -49,7 +49,13 @@ pub fn info(registry: &Registry, tool: &str, out: &mut dyn Write) -> Result<(), 
         writeln!(out, "{}", info.description)?;
     }
     writeln!(out)?;
-    writeln!(out, "Usage: sundry {} [-i FILE | -t TEXT]... [-p NAME=VALUE]... [-o PATH]", info.id)?;
+    let input = match info.input {
+        InputKind::None => "",
+        InputKind::Text => " [-t TEXT]...",
+        InputKind::Files => " [-i FILE]...",
+        _ => " [-i FILE | -t TEXT]...",
+    };
+    writeln!(out, "Usage: sundry {}{input} [-p NAME=VALUE]... [-o PATH]", info.id)?;
     writeln!(out)?;
     let params = entry.params();
     if params.is_empty() {

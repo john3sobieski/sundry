@@ -2,7 +2,8 @@
 //! SI units (1 kB = 1000 B) and IEC units (1 KiB = 1024 B).
 
 use sundry_core::{
-    Category, Error, Input, Item, Job, Output, ParamKind, ParamSpec, Params, Result, Tool, ToolInfo,
+    Category, Error, Input, InputKind, Item, Job, Output, ParamKind, ParamSpec, Params, Result,
+    Tool, ToolInfo,
 };
 
 /// Unit ids and their size in bits. The ids double as the labels in the UI.
@@ -57,6 +58,7 @@ impl Tool for DataSize {
             "Data size",
             "Converts bits, bytes, SI units (kB = 1000 B) and IEC units (KiB = 1024 B).",
         )
+        .with_input(InputKind::None)
     }
 
     fn params(&self) -> Vec<ParamSpec> {

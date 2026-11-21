@@ -16,4 +16,4 @@ pub use job::Job;
 pub use params::{ParamKind, ParamSpec, Params, Value};
 pub use registry::{Registry, ToolEntry};
 pub use settings::{Language, LogLevel, Settings, Theme};
-pub use tool::{Category, Tool, ToolInfo};
+pub use tool::{Category, InputKind, Tool, ToolInfo};

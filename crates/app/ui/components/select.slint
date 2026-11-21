@@ -5,7 +5,14 @@ export component SSelect inherits Rectangle {
     in-out property <int> current-index: 0;
     // Open the list above the control (for controls at the bottom of the window).
     in property <bool> open-up: false;
+    // Optional display text for an option; used when `custom-labels` is set.
+    in property <bool> custom-labels: false;
+    pure callback display(string) -> string;
     callback selected(int);
+
+    pure function shown(option: string) -> string {
+        return root.custom-labels ? root.display(option) : option;
+    }
 
     min-height: 32px;
     min-width: 120px;
@@ -35,7 +42,7 @@ export component SSelect inherits Rectangle {
             x: 10px;
             width: parent.width - 36px;
             height: parent.height;
-            text: root.model[root.current-index];
+            text: root.shown(root.model[root.current-index]);
             color: Theme.text;
             font-size: Theme.fs-base;
             vertical-alignment: center;
@@ -86,7 +93,7 @@ export component SSelect inherits Rectangle {
                         x: 10px;
                         width: parent.width - 20px;
                         height: parent.height;
-                        text: label;
+                        text: root.shown(label);
                         color: Theme.text;
                         font-size: Theme.fs-base;
                         font-weight: index == root.current-index ? 600 : 400;

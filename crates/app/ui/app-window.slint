@@ -26,6 +26,8 @@ export struct ToolItem {
     id: string,
     name: string,
     description: string,
+    // What the tool reads: none | text | files | any.
+    input: string,
 }
 
 // One generated parameter field. `kind` is bool | int | float | text | choice.
@@ -95,6 +97,8 @@ component FormRow inherits VerticalLayout {
     if root.field.kind == "choice": SSelect {
         model: root.field.options;
         current-index: root.field.index;
+        custom-labels: true;
+        display(option) => { return Strings.option-label(root.tool-id, root.field.id, option); }
         selected(index) => { root.selected(index); }
     }
 
@@ -407,7 +411,7 @@ export component AppWindow inherits Window {
                                             selected(choice) => { root.field-selected(index, choice); }
                                         }
 
-                                        VerticalLayout {
+                                        if root.current-tool.input != "none": VerticalLayout {
                                             max-width: 440px;
                                             spacing: 4px;
 
@@ -434,12 +438,14 @@ export component AppWindow inherits Window {
                                                 }
                                             }
 
-                                            SField {
-                                                placeholder: @tr("Type text, or drop files on this panel");
+                                            if root.current-tool.input == "text" || root.current-tool.input == "any": SField {
+                                                placeholder: root.current-tool.input == "text"
+                                                    ? @tr("Type text")
+                                                    : @tr("Type text, or drop files on this panel");
                                                 text <=> root.input-text;
                                             }
 
-                                            HorizontalLayout {
+                                            if root.current-tool.input == "files" || root.current-tool.input == "any": HorizontalLayout {
                                                 alignment: start;
 
                                                 SButton {

@@ -31,6 +31,26 @@ export global Strings {
         return fallback;
     }
 
+    // Labels of choice options; options without a branch show their id.
+    pure public function option-label(tool: string, param: string, option: string) -> string {
+        if (tool == "convert.data" && (param == "from" || param == "to")) {
+            if (option == "bit") { return @tr("bit"); }
+            if (option == "B") { return @tr("B"); }
+            if (option == "kbit") { return @tr("kbit"); }
+            if (option == "Mbit") { return @tr("Mbit"); }
+            if (option == "Gbit") { return @tr("Gbit"); }
+            if (option == "kB") { return @tr("kB"); }
+            if (option == "MB") { return @tr("MB"); }
+            if (option == "GB") { return @tr("GB"); }
+            if (option == "TB") { return @tr("TB"); }
+            if (option == "KiB") { return @tr("KiB"); }
+            if (option == "MiB") { return @tr("MiB"); }
+            if (option == "GiB") { return @tr("GiB"); }
+            if (option == "TiB") { return @tr("TiB"); }
+        }
+        return option;
+    }
+
     pure public function range-hint(min: string, max: string) -> string {
         if (min != "" && max != "") { return @tr("{} to {}", min, max); }
         if (min != "") { return @tr("from {}", min); }

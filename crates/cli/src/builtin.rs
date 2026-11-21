@@ -3,10 +3,8 @@
 use sundry_core::{Registry, Result};
 
 pub fn registry() -> Result<Registry> {
-    #[cfg_attr(not(feature = "demo"), allow(unused_mut))]
     let mut registry = Registry::new();
-    #[cfg(feature = "demo")]
-    registry.register(crate::demo::Repeat)?;
+    sundry_tools_convert::register(&mut registry)?;
     Ok(registry)
 }
 

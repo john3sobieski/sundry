@@ -12,12 +12,9 @@ publish.workspace = true
 name = "sundry"
 path = "src/main.rs"
 
-[features]
-# Registers the demo tool `text.repeat` so the CLI can be tried before real tools exist.
-demo = []
-
 [dependencies]
 sundry-core.workspace = true
+sundry-tools-convert.workspace = true
 thiserror.workspace = true
 
 [lints]

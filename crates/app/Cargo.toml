@@ -13,10 +13,6 @@ build = "build.rs"
 name = "sundry-app"
 path = "src/main.rs"
 
-[features]
-# Registers the demo tool so the shell can be tried before real tools exist.
-demo = ["sundry-cli/demo"]
-
 [dependencies]
 sundry-core.workspace = true
 sundry-cli.workspace = true

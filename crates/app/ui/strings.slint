@@ -15,19 +15,19 @@ export global Strings {
     // Tool texts come from the tool itself in English; a tool gets a branch here
     // when it has a translation. `fallback` is the English text from the registry.
     pure public function tool-name(id: string, fallback: string) -> string {
-        if (id == "text.repeat") { return @tr("Repeat text"); }
+        if (id == "convert.data") { return @tr("Data size"); }
         return fallback;
     }
 
     pure public function tool-description(id: string, fallback: string) -> string {
-        if (id == "text.repeat") { return @tr("Repeats the input text."); }
+        if (id == "convert.data") { return @tr("Converts bits, bytes, SI units (kB = 1000 B) and IEC units (KiB = 1024 B)."); }
         return fallback;
     }
 
     pure public function param-label(tool: string, param: string, fallback: string) -> string {
-        if (tool == "text.repeat" && param == "times") { return @tr("Times"); }
-        if (tool == "text.repeat" && param == "separator") { return @tr("Separator"); }
-        if (tool == "text.repeat" && param == "upper") { return @tr("Upper case"); }
+        if (tool == "convert.data" && param == "value") { return @tr("Value"); }
+        if (tool == "convert.data" && param == "from") { return @tr("From"); }
+        if (tool == "convert.data" && param == "to") { return @tr("To"); }
         return fallback;
     }
 

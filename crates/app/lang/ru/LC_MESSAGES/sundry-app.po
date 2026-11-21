@@ -82,20 +82,20 @@ msgstr "Файлы"
 msgid "Development"
 msgstr "Разработка"
 
-msgid "Repeat text"
-msgstr "Повтор текста"
+msgid "Data size"
+msgstr "Объём данных"
 
-msgid "Repeats the input text."
-msgstr "Повторяет входной текст."
+msgid "Converts bits, bytes, SI units (kB = 1000 B) and IEC units (KiB = 1024 B)."
+msgstr "Переводит биты, байты, единицы SI (кБ = 1000 Б) и IEC (КиБ = 1024 Б)."
 
-msgid "Times"
-msgstr "Повторов"
+msgid "Value"
+msgstr "Значение"
 
-msgid "Separator"
-msgstr "Разделитель"
+msgid "From"
+msgstr "Из"
 
-msgid "Upper case"
-msgstr "Верхний регистр"
+msgid "To"
+msgstr "В"
 
 msgid "{} to {}"
 msgstr "от {} до {}"

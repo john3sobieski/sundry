@@ -15,7 +15,7 @@ cargo test --workspace
 ## Desktop app
 
 ```
-cargo run -p sundry-app --features demo
+cargo run -p sundry-app
 ```
 
 Requires Rust 1.92 or newer.
@@ -28,10 +28,10 @@ sundry info <tool>
 sundry <tool> [-i FILE | -t TEXT]... [-p NAME=VALUE]... [-o PATH]
 ```
 
-To try it before real tools exist, build with the demo tool:
+Example (data size converter):
 
 ```
-cargo run -p sundry-cli --features demo -- text.repeat -t ab -p times=3
+cargo run -p sundry-cli -- convert.data -p value=15 -p from=kB -p to=Mbit
 ```
 
 ## License

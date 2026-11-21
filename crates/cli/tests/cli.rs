@@ -3,9 +3,38 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use sundry_cli::demo::Repeat;
 use sundry_cli::{Io, run};
-use sundry_core::{Category, Input, Item, Job, Output, Params, Registry, Result, Tool, ToolInfo};
+use sundry_core::{
+    Category, Input, Item, Job, Output, ParamSpec, Params, Registry, Result, Tool, ToolInfo,
+};
+
+/// A test tool that reads its input, so input handling can be tested.
+struct Repeat;
+
+impl Tool for Repeat {
+    fn info(&self) -> ToolInfo {
+        ToolInfo::new("text.repeat", Category::Text, "Repeat text", "Repeats the input text.")
+    }
+
+    fn params(&self) -> Vec<ParamSpec> {
+        vec![
+            ParamSpec::int_range("times", 2, 1, 5),
+            ParamSpec::text("separator", ""),
+            ParamSpec::boolean("upper", false),
+        ]
+    }
+
+    fn run(&self, input: &Input, params: &Params, _: &Job) -> Result<Output> {
+        let text = input.first()?.data.as_text()?;
+        let times = params.get_int("times")?;
+        let mut result =
+            vec![text; usize::try_from(times).unwrap()].join(params.get_text("separator")?);
+        if params.get_bool("upper")? {
+            result = result.to_uppercase();
+        }
+        Ok(Output::single(Item::text(result)))
+    }
+}
 
 /// Returns fixed items, for testing how results are written.
 struct Emit(&'static str, Vec<Item>);
@@ -249,4 +278,21 @@ fn runtime_failures_exit_with_1() {
     let out = cli(&["text.repeat", "-i", "definitely/missing/file.txt"]);
     assert_eq!(out.code, 1);
     assert!(out.stderr.contains("definitely/missing/file.txt"));
+}
+
+#[test]
+fn built_in_data_converter_works_end_to_end() {
+    let registry = sundry_cli::builtin::registry().unwrap();
+    let out = cli_with(
+        &registry,
+        &["convert.data", "-p", "value=15", "-p", "from=kB", "-p", "to=Mbit"],
+        b"",
+    );
+    assert_eq!(out.code, 0, "{}", out.stderr);
+    assert_eq!(out.out(), "15 kB = 0.12 Mbit\n");
+    let out = cli_with(&registry, &["convert.data", "-p", "value=1,5", "-p", "to=B"], b"");
+    assert_eq!(out.code, 2, "a decimal comma is not accepted on the command line");
+    let out = cli_with(&registry, &["convert.data", "-p", "from=parsec"], b"");
+    assert_eq!(out.code, 2);
+    assert!(cli_with(&registry, &["list", "-c", "convert"], b"").out().contains("convert.data"));
 }

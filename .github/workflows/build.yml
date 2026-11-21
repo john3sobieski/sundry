@@ -20,8 +20,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      # `demo` registers a sample tool so the window is not empty.
-      - run: cargo build --release -p sundry-app --features demo
+      - run: cargo build --release -p sundry-app
       - uses: actions/upload-artifact@v4
         with:
           name: sundry-windows

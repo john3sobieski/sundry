@@ -3,11 +3,14 @@
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 use std::cell::RefCell;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::time::Duration;
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use sundry_core::{
-    Category, Error, ParamKind, ParamSpec, Params, Registry, Settings, Value, logging, settings,
+    Category, Error, Input, Item, Job, ParamKind, ParamSpec, Params, Registry, Settings, Tool,
+    Value, logging, params, settings,
 };
 
 slint::include_modules!();
@@ -43,6 +46,13 @@ enum Edit {
     Choice(usize),
 }
 
+/// How a background run ended.
+enum Outcome {
+    Done(String),
+    Failed(String),
+    Cancelled,
+}
+
 /// Models shown by the window; refreshed whenever the category, query or tool changes.
 struct Shell {
     registry: Registry,
@@ -50,6 +60,9 @@ struct Shell {
     tools: Rc<VecModel<ToolItem>>,
     fields: Rc<VecModel<FormField>>,
     form: RefCell<Form>,
+    files: RefCell<Vec<PathBuf>>,
+    file_names: Rc<VecModel<SharedString>>,
+    job: RefCell<Option<Job>>,
 }
 
 impl Shell {
@@ -118,6 +131,140 @@ impl Shell {
     fn form_valid(&self) -> bool {
         self.form.borrow().is_valid()
     }
+
+    fn add_files(&self, paths: Vec<PathBuf>) {
+        let mut files = self.files.borrow_mut();
+        for path in paths.into_iter().filter(|p| p.is_file()) {
+            if !files.contains(&path) {
+                self.file_names.push(display_name(&path).into());
+                files.push(path);
+            }
+        }
+    }
+
+    fn remove_file(&self, index: usize) {
+        let mut files = self.files.borrow_mut();
+        if index < files.len() {
+            files.remove(index);
+            self.file_names.remove(index);
+        }
+    }
+
+    fn clear_files(&self) {
+        self.files.borrow_mut().clear();
+        self.file_names.set_vec(Vec::<SharedString>::new());
+    }
+
+    /// Validates the form and starts the tool on a background thread.
+    fn start_run(&self, ui: &AppWindow) {
+        let prepared = {
+            let form = self.form.borrow();
+            self.registry.get(&form.tool_id).map_err(|e| e.to_string()).and_then(|entry| {
+                let resolved =
+                    params::resolve(&form.specs, &form.params()).map_err(|e| e.to_string())?;
+                Ok((entry.tool(), resolved))
+            })
+        };
+        let (tool, resolved) = match prepared {
+            Ok(prepared) => prepared,
+            Err(message) => {
+                ui.set_result_error(true);
+                ui.set_result_text(message.into());
+                return;
+            }
+        };
+
+        let job = Job::new();
+        *self.job.borrow_mut() = Some(job.clone());
+        ui.set_progress(0.0);
+        ui.set_result_text("".into());
+        ui.set_result_error(false);
+        ui.set_running(true);
+
+        let text = ui.get_input_text().to_string();
+        let files = self.files.borrow().clone();
+        let weak = ui.as_weak();
+        std::thread::spawn(move || {
+            let outcome = run_blocking(&*tool, &resolved, &text, &files, &job);
+            // The window may be gone by now; then there is nothing to update.
+            let _ = slint::invoke_from_event_loop(move || {
+                let Some(ui) = weak.upgrade() else { return };
+                ui.set_running(false);
+                match outcome {
+                    Outcome::Done(text) if text.is_empty() => {
+                        ui.set_result_text("(empty result)".into());
+                    }
+                    Outcome::Done(text) => ui.set_result_text(text.into()),
+                    Outcome::Failed(message) => {
+                        ui.set_result_error(true);
+                        ui.set_result_text(message.into());
+                    }
+                    Outcome::Cancelled => ui.set_result_text("Cancelled".into()),
+                }
+            });
+        });
+    }
+
+    fn cancel_run(&self) {
+        if let Some(job) = self.job.borrow().as_ref() {
+            job.cancel();
+        }
+    }
+}
+
+fn display_name(path: &Path) -> String {
+    path.file_name().map_or_else(
+        || path.display().to_string(),
+        |name| name.to_string_lossy().into_owned(),
+    )
+}
+
+/// Reads the inputs and runs the tool; meant for a worker thread.
+fn run_blocking(
+    tool: &dyn Tool,
+    params: &Params,
+    text: &str,
+    files: &[PathBuf],
+    job: &Job,
+) -> Outcome {
+    let mut items = Vec::new();
+    if !text.is_empty() {
+        items.push(Item::text(text));
+    }
+    for path in files {
+        if job.is_cancelled() {
+            return Outcome::Cancelled;
+        }
+        match std::fs::read(path) {
+            Ok(bytes) => items.push(Item::bytes(bytes).named(display_name(path))),
+            Err(err) => return Outcome::Failed(format!("{}: {err}", path.display())),
+        }
+    }
+
+    let output = match tool.run(&Input { items }, params, job) {
+        Ok(output) => output,
+        Err(Error::Cancelled) => return Outcome::Cancelled,
+        Err(err) => return Outcome::Failed(err.to_string()),
+    };
+    job.set_progress(1.0);
+
+    let mut texts = Vec::with_capacity(output.items.len());
+    for item in &output.items {
+        match item.data.as_text() {
+            Ok(text) => texts.push(text),
+            Err(_) => {
+                return Outcome::Failed(
+                    "The result is binary data; saving files is not implemented yet.".to_owned(),
+                );
+            }
+        }
+    }
+    Outcome::Done(texts.join("\n"))
+}
+
+/// Local file paths carried by a drag-and-drop payload.
+fn paths_of(data: &slint::DataTransfer) -> Vec<PathBuf> {
+    data.file_paths().map(|it| it.map(Path::to_path_buf).collect()).unwrap_or_default()
 }
 
 fn count(n: usize) -> i32 {
@@ -233,6 +380,42 @@ fn load_settings() -> Settings {
     })
 }
 
+/// Connects dropped files, run and cancel to the shell.
+fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
+    let api = ui.global::<DropApi>();
+    api.on_can_drop(|data| !paths_of(&data).is_empty());
+    api.on_dropped({
+        let shell = Rc::clone(shell);
+        move |data| shell.add_files(paths_of(&data))
+    });
+
+    ui.on_file_removed({
+        let shell = Rc::clone(shell);
+        move |i| {
+            if let Some(i) = index_of(i) {
+                shell.remove_file(i);
+            }
+        }
+    });
+    ui.on_files_cleared({
+        let shell = Rc::clone(shell);
+        move || shell.clear_files()
+    });
+
+    ui.on_run_requested({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                shell.start_run(&ui);
+            }
+        }
+    });
+    ui.on_cancel_requested({
+        let shell = Rc::clone(shell);
+        move || shell.cancel_run()
+    });
+}
+
 /// Connects the form callbacks of the window to the shell.
 fn bind_form(ui: &AppWindow, shell: &Rc<Shell>) {
     let weak = ui.as_weak();
@@ -295,6 +478,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         tools: Rc::new(VecModel::default()),
         fields: Rc::new(VecModel::default()),
         form: RefCell::new(Form::default()),
+        files: RefCell::new(Vec::new()),
+        file_names: Rc::new(VecModel::default()),
+        job: RefCell::new(None),
     });
     shell.refresh("", "");
 
@@ -302,6 +488,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui.set_categories(ModelRc::from(shell.categories.clone()));
     ui.set_tools(ModelRc::from(shell.tools.clone()));
     ui.set_form(ModelRc::from(shell.fields.clone()));
+    ui.set_input_files(ModelRc::from(shell.file_names.clone()));
     ui.set_tool_total(count(shell.registry.len()));
 
     let (mode, index) = mode_of(config.theme);
@@ -321,6 +508,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui.on_search_edited(on_change);
 
     bind_form(&ui, &shell);
+    bind_run(&ui, &shell);
+
+    // Mirrors the running job's progress into the status bar.
+    let timer = slint::Timer::default();
+    timer.start(slint::TimerMode::Repeated, Duration::from_millis(50), {
+        let (shell, weak) = (Rc::clone(&shell), ui.as_weak());
+        move || {
+            if let Some(ui) = weak.upgrade()
+                && ui.get_running()
+                && let Some(job) = shell.job.borrow().as_ref()
+            {
+                ui.set_progress(job.progress());
+            }
+        }
+    });
 
     ui.on_theme_selected(move |index| {
         let mut config = load_settings();

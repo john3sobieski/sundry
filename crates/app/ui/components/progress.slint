@@ -1,0 +1,20 @@
+import { Theme } from "../theme.slint";
+
+export component SProgress inherits Rectangle {
+    // Fraction in 0..1.
+    in property <float> value: 0;
+
+    min-height: 6px;
+    height: 6px;
+    border-radius: Theme.radius;
+    border-width: 1px;
+    border-color: Theme.control-border;
+    background: Theme.raised;
+    clip: true;
+
+    Rectangle {
+        x: 0;
+        width: parent.width * clamp(root.value, 0, 1);
+        background: Theme.text;
+    }
+}

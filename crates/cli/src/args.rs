@@ -265,7 +265,8 @@ mod tests {
 
     #[test]
     fn run_params_output_and_force() {
-        let run = run_args(&["t", "-p", "n=3", "--param=label=a=b", "-p", "flag", "-o", "out", "-f"]);
+        let run =
+            run_args(&["t", "-p", "n=3", "--param=label=a=b", "-p", "flag", "-o", "out", "-f"]);
         assert_eq!(
             run.params,
             [

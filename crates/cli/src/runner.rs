@@ -37,9 +37,8 @@ fn build_params(specs: &[ParamSpec], raw: &[RawParam]) -> Result<Params, CliErro
 /// Turns command-line text into a typed value. Ranges and choices are
 /// checked later by the registry, not here.
 fn parse_value(spec: &ParamSpec, raw: Option<&str>) -> Result<Value, CliError> {
-    let bad = |reason: String| {
-        CliError::Core(Error::InvalidParam { name: spec.id.clone(), reason })
-    };
+    let bad =
+        |reason: String| CliError::Core(Error::InvalidParam { name: spec.id.clone(), reason });
     match (&spec.kind, raw) {
         (ParamKind::Bool { .. }, None) => Ok(Value::Bool(true)),
         (_, None) => Err(bad("expected name=value".to_owned())),

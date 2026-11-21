@@ -1,13 +1,12 @@
-import { ListView } from "std-widgets.slint";
+import { ListView, ScrollView } from "std-widgets.slint";
 import { Theme, ThemeMode } from "theme.slint";
 import { Strings } from "strings.slint";
 import { SField } from "components/field.slint";
 import { SSelect } from "components/select.slint";
+import { SSwitch } from "components/switch.slint";
 
 import { SButton } from "components/button.slint";
 
-// Re-exported so it is compiled and checked before a screen uses it.
-export { SSwitch } from "components/switch.slint";
 export { Theme, ThemeMode, Strings }
 
 export struct CategoryItem {
@@ -20,6 +19,79 @@ export struct ToolItem {
     id: string,
     name: string,
     description: string,
+}
+
+// One generated parameter field. `kind` is bool | int | float | text | choice.
+export struct FormField {
+    id: string,
+    label: string,
+    kind: string,
+    text: string,
+    checked: bool,
+    index: int,
+    options: [string],
+    hint: string,
+    error: string,
+}
+
+component FormRow inherits VerticalLayout {
+    in property <FormField> field;
+    callback edited(string);
+    callback toggled(bool);
+    callback selected(int);
+
+    max-width: 440px;
+    spacing: 4px;
+
+    if root.field.kind != "bool": HorizontalLayout {
+        Text {
+            text: root.field.label;
+            color: Theme.text;
+            font-size: Theme.fs-base;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        Text {
+            text: root.field.hint;
+            color: Theme.text-3;
+            font-family: Theme.mono;
+            font-size: Theme.fs-small;
+        }
+    }
+
+    if root.field.kind == "bool": SSwitch {
+        text: root.field.label;
+        checked: root.field.checked;
+        toggled(value) => { root.toggled(value); }
+    }
+
+    if root.field.kind == "int" || root.field.kind == "float": SField {
+        mono: true;
+        text: root.field.text;
+        edited(value) => { root.edited(value); }
+    }
+
+    if root.field.kind == "text": SField {
+        text: root.field.text;
+        edited(value) => { root.edited(value); }
+    }
+
+    if root.field.kind == "choice": SSelect {
+        model: root.field.options;
+        current-index: root.field.index;
+        selected(index) => { root.selected(index); }
+    }
+
+    if root.field.error != "": Text {
+        text: root.field.error;
+        color: Theme.error;
+        font-size: Theme.fs-small;
+        wrap: word-wrap;
+    }
 }
 
 component NavItem inherits Rectangle {
@@ -135,11 +207,16 @@ export component AppWindow inherits Window {
     in-out property <ToolItem> current-tool;
     in-out property <bool> has-current-tool: false;
     in-out property <int> theme-index: 0;
+    in property <[FormField]> form;
+    in property <bool> form-valid: true;
 
     callback category-selected(string);
     callback search-edited(string);
     callback tool-selected(ToolItem);
     callback theme-selected(int);
+    callback field-edited(int, string);
+    callback field-toggled(int, bool);
+    callback field-selected(int, int);
 
     // Ctrl+K focuses the search field.
     scope := FocusScope {
@@ -245,7 +322,6 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 padding: 24px;
                                 spacing: 8px;
-                                alignment: start;
 
                                 if root.has-current-tool: Text {
                                     text: root.current-tool.name;
@@ -269,11 +345,28 @@ export component AppWindow inherits Window {
                                     font-size: Theme.fs-small;
                                 }
 
+                                if root.has-current-tool: ScrollView {
+                                    vertical-stretch: 1;
+
+                                    VerticalLayout {
+                                        padding-top: 8px;
+                                        padding-bottom: 8px;
+                                        spacing: 16px;
+                                        alignment: start;
+
+                                        for item[index] in root.form: FormRow {
+                                            field: item;
+                                            edited(value) => { root.field-edited(index, value); }
+                                            toggled(value) => { root.field-toggled(index, value); }
+                                            selected(choice) => { root.field-selected(index, choice); }
+                                        }
+                                    }
+                                }
+
                                 if root.has-current-tool: HorizontalLayout {
-                                    padding-top: 8px;
                                     alignment: start;
 
-                                    // Disabled until the parameter form and run logic exist.
+                                    // Disabled until running tools from the UI is implemented.
                                     SButton {
                                         width: 96px;
                                         text: @tr("Run");
@@ -285,6 +378,10 @@ export component AppWindow inherits Window {
                                 if !root.has-current-tool: Text {
                                     text: @tr("Select a tool from the list.");
                                     color: Theme.text-2;
+                                }
+
+                                if !root.has-current-tool: Rectangle {
+                                    vertical-stretch: 1;
                                 }
                             }
                         }

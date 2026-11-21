@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows app
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # `demo` registers a sample tool so the window is not empty.
+      - run: cargo build --release -p sundry-app --features demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sundry-windows
+          path: target/release/sundry-app.exe
+          if-no-files-found: error
+          retention-days: 14

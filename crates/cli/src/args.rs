@@ -152,10 +152,10 @@ fn parse_run(tool: &str, args: &[String]) -> Result<Command, CliError> {
 
 /// Splits `--name=value` into its parts; anything else is returned as is.
 fn split_option(arg: &str) -> (&str, Option<&str>) {
-    if arg.starts_with("--") {
-        if let Some((name, value)) = arg.split_once('=') {
-            return (name, Some(value));
-        }
+    if arg.starts_with("--")
+        && let Some((name, value)) = arg.split_once('=')
+    {
+        return (name, Some(value));
     }
     (arg, None)
 }

@@ -4,8 +4,9 @@ import { Strings } from "strings.slint";
 import { SField } from "components/field.slint";
 import { SSelect } from "components/select.slint";
 
-// Re-exported so they are compiled and checked even before a screen uses them.
-export { SButton } from "components/button.slint";
+import { SButton } from "components/button.slint";
+
+// Re-exported so it is compiled and checked before a screen uses it.
 export { SSwitch } from "components/switch.slint";
 export { Theme, ThemeMode, Strings }
 
@@ -266,6 +267,19 @@ export component AppWindow inherits Window {
                                     color: Theme.text-3;
                                     font-family: Theme.mono;
                                     font-size: Theme.fs-small;
+                                }
+
+                                if root.has-current-tool: HorizontalLayout {
+                                    padding-top: 8px;
+                                    alignment: start;
+
+                                    // Disabled until the parameter form and run logic exist.
+                                    SButton {
+                                        width: 96px;
+                                        text: @tr("Run");
+                                        primary: true;
+                                        enabled: false;
+                                    }
                                 }
 
                                 if !root.has-current-tool: Text {

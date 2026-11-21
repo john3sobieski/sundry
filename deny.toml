@@ -21,12 +21,15 @@ allow = [
     "Zlib",
     "Unicode-3.0",
     "CC0-1.0",
+    "BSL-1.0",
+    "Unlicense",
     # Slint is `GPL-3.0-only OR Royalty-free OR Commercial`: we use the royalty-free option.
     "LicenseRef-Slint-Royalty-free-2.0",
 ]
 
 [bans]
-multiple-versions = "warn"
+# GUI dependency trees always contain duplicates; the warnings were pure noise.
+multiple-versions = "allow"
 wildcards = "deny"
 allow-wildcard-paths = true
 

@@ -101,10 +101,10 @@ pub fn default_path() -> Result<PathBuf> {
 }
 
 fn locate(exe_dir: Option<&Path>, env: impl Fn(&str) -> Option<OsString>) -> Result<PathBuf> {
-    if let Some(dir) = exe_dir {
-        if dir.join(PORTABLE_MARKER).is_file() {
-            return Ok(dir.join(FILE_NAME));
-        }
+    if let Some(dir) = exe_dir
+        && dir.join(PORTABLE_MARKER).is_file()
+    {
+        return Ok(dir.join(FILE_NAME));
     }
     let base = if cfg!(windows) {
         env("APPDATA").map(PathBuf::from)

@@ -228,7 +228,7 @@ export component AppWindow inherits Window {
     // kind: "" (none) | text | error | cancelled | empty | binary
     in property <string> result-kind: "";
     in property <string> result-text: "";
-    in property <int> language-index: 0;
+    in-out property <int> language-index: 0;
 
     callback category-selected(string);
     callback search-edited(string);
@@ -444,8 +444,8 @@ export component AppWindow inherits Window {
 
                                                 SButton {
                                                     width: 140px;
-                                                    height: 28px;
                                                     min-height: 28px;
+                                                    max-height: 28px;
                                                     text: @tr("Choose files...");
                                                     clicked => { root.files-requested(); }
                                                 }
@@ -465,8 +465,8 @@ export component AppWindow inherits Window {
 
                                                 SButton {
                                                     width: 72px;
-                                                    height: 24px;
                                                     min-height: 24px;
+                                                    max-height: 24px;
                                                     text: @tr("Remove");
                                                     clicked => { root.file-removed(index); }
                                                 }
@@ -586,8 +586,8 @@ export component AppWindow inherits Window {
 
                     SButton {
                         width: 80px;
-                        height: 28px;
                         min-height: 28px;
+                        max-height: 28px;
                         text: @tr("Cancel");
                         clicked => { root.cancel-requested(); }
                     }
@@ -598,7 +598,6 @@ export component AppWindow inherits Window {
                     y: (parent.height - self.height) / 2;
                     width: 140px;
                     height: 28px;
-                    min-height: 28px;
                     open-up: true;
                     model: ["English", "Русский"];
                     current-index <=> root.language-index;
@@ -610,7 +609,6 @@ export component AppWindow inherits Window {
                     y: (parent.height - self.height) / 2;
                     width: 140px;
                     height: 28px;
-                    min-height: 28px;
                     open-up: true;
                     model: [@tr("Theme: system"), @tr("Theme: light"), @tr("Theme: dark")];
                     current-index <=> root.theme-index;

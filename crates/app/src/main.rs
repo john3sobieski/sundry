@@ -229,10 +229,8 @@ impl Shell {
 }
 
 fn display_name(path: &Path) -> String {
-    path.file_name().map_or_else(
-        || path.display().to_string(),
-        |name| name.to_string_lossy().into_owned(),
-    )
+    path.file_name()
+        .map_or_else(|| path.display().to_string(), |name| name.to_string_lossy().into_owned())
 }
 
 /// Reads the inputs and runs the tool; meant for a worker thread.
@@ -357,18 +355,14 @@ fn check_bounds<T: PartialOrd + Display>(
 fn evaluate(spec: &ParamSpec, edit: &Edit) -> Result<Value, FieldError> {
     let value = match (&spec.kind, edit) {
         (ParamKind::Int { min, max, .. }, Edit::Text(text)) => {
-            let n: i64 =
-                text.trim().parse().map_err(|_| FieldError::new("whole-number", ""))?;
+            let n: i64 = text.trim().parse().map_err(|_| FieldError::new("whole-number", ""))?;
             check_bounds(&n, min, max)?;
             Value::Int(n)
         }
         (ParamKind::Float { min, max, .. }, Edit::Text(text)) => {
             // Accept a decimal comma as well as a point.
-            let n: f64 = text
-                .trim()
-                .replace(',', ".")
-                .parse()
-                .map_err(|_| FieldError::new("number", ""))?;
+            let n: f64 =
+                text.trim().replace(',', ".").parse().map_err(|_| FieldError::new("number", ""))?;
             check_bounds(&n, min, max)?;
             Value::Float(n)
         }
@@ -411,7 +405,8 @@ fn language_index(language: Language) -> i32 {
         Language::En => 0,
         Language::Ru => 1,
         Language::Auto => {
-            let russian = sys_locale::get_locale().is_some_and(|l| l.to_lowercase().starts_with("ru"));
+            let russian =
+                sys_locale::get_locale().is_some_and(|l| l.to_lowercase().starts_with("ru"));
             i32::from(russian)
         }
     }

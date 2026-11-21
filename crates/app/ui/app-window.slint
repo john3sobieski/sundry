@@ -37,11 +37,16 @@ export struct FormField {
     checked: bool,
     index: int,
     options: [string],
-    hint: string,
-    error: string,
+    // Bounds as text, empty when unbounded (shown as a hint).
+    min: string,
+    max: string,
+    // Validation problem: a code understood by Strings.field-error, plus its argument.
+    error-code: string,
+    error-arg: string,
 }
 
 component FormRow inherits VerticalLayout {
+    in property <string> tool-id;
     in property <FormField> field;
     callback edited(string);
     callback toggled(bool);
@@ -52,7 +57,7 @@ component FormRow inherits VerticalLayout {
 
     if root.field.kind != "bool": HorizontalLayout {
         Text {
-            text: root.field.label;
+            text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
             color: Theme.text;
             font-size: Theme.fs-base;
             font-weight: 600;
@@ -63,7 +68,7 @@ component FormRow inherits VerticalLayout {
         }
 
         Text {
-            text: root.field.hint;
+            text: Strings.range-hint(root.field.min, root.field.max);
             color: Theme.text-3;
             font-family: Theme.mono;
             font-size: Theme.fs-small;
@@ -71,7 +76,7 @@ component FormRow inherits VerticalLayout {
     }
 
     if root.field.kind == "bool": SSwitch {
-        text: root.field.label;
+        text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
         checked: root.field.checked;
         toggled(value) => { root.toggled(value); }
     }
@@ -93,8 +98,8 @@ component FormRow inherits VerticalLayout {
         selected(index) => { root.selected(index); }
     }
 
-    if root.field.error != "": Text {
-        text: root.field.error;
+    if root.field.error-code != "": Text {
+        text: Strings.field-error(root.field.error-code, root.field.error-arg);
         color: Theme.error;
         font-size: Theme.fs-small;
         wrap: word-wrap;
@@ -171,7 +176,7 @@ component ToolRow inherits Rectangle {
         spacing: 2px;
 
         Text {
-            text: root.tool.name;
+            text: Strings.tool-name(root.tool.id, root.tool.name);
             color: Theme.text;
             font-size: Theme.fs-base;
             font-weight: root.selected ? 600 : 400;
@@ -179,7 +184,7 @@ component ToolRow inherits Rectangle {
         }
 
         Text {
-            text: root.tool.description;
+            text: Strings.tool-description(root.tool.id, root.tool.description);
             color: Theme.text-2;
             font-size: Theme.fs-small;
             overflow: elide;
@@ -220,8 +225,10 @@ export component AppWindow inherits Window {
     in property <[string]> input-files;
     in property <bool> running: false;
     in property <float> progress: 0;
+    // kind: "" (none) | text | error | cancelled | empty | binary
+    in property <string> result-kind: "";
     in property <string> result-text: "";
-    in property <bool> result-error: false;
+    in property <int> language-index: 0;
 
     callback category-selected(string);
     callback search-edited(string);
@@ -232,6 +239,8 @@ export component AppWindow inherits Window {
     callback field-selected(int, int);
     callback file-removed(int);
     callback files-cleared();
+    callback files-requested();
+    callback language-selected(int);
     callback run-requested();
     callback cancel-requested();
 
@@ -360,7 +369,7 @@ export component AppWindow inherits Window {
                                 spacing: 8px;
 
                                 if root.has-current-tool: Text {
-                                    text: root.current-tool.name;
+                                    text: Strings.tool-name(root.current-tool.id, root.current-tool.name);
                                     color: Theme.text;
                                     font-size: Theme.fs-title;
                                     font-weight: 600;
@@ -368,7 +377,7 @@ export component AppWindow inherits Window {
                                 }
 
                                 if root.has-current-tool: Text {
-                                    text: root.current-tool.description;
+                                    text: Strings.tool-description(root.current-tool.id, root.current-tool.description);
                                     color: Theme.text-2;
                                     font-size: Theme.fs-medium;
                                     wrap: word-wrap;
@@ -391,6 +400,7 @@ export component AppWindow inherits Window {
                                         alignment: start;
 
                                         for item[index] in root.form: FormRow {
+                                            tool-id: root.current-tool.id;
                                             field: item;
                                             edited(value) => { root.field-edited(index, value); }
                                             toggled(value) => { root.field-toggled(index, value); }
@@ -429,6 +439,18 @@ export component AppWindow inherits Window {
                                                 text <=> root.input-text;
                                             }
 
+                                            HorizontalLayout {
+                                                alignment: start;
+
+                                                SButton {
+                                                    width: 140px;
+                                                    height: 28px;
+                                                    min-height: 28px;
+                                                    text: @tr("Choose files...");
+                                                    clicked => { root.files-requested(); }
+                                                }
+                                            }
+
                                             for file[index] in root.input-files: HorizontalLayout {
                                                 spacing: 8px;
 
@@ -451,7 +473,7 @@ export component AppWindow inherits Window {
                                             }
                                         }
 
-                                        if root.result-text != "": VerticalLayout {
+                                        if root.result-kind != "": VerticalLayout {
                                             spacing: 4px;
 
                                             Text {
@@ -463,10 +485,10 @@ export component AppWindow inherits Window {
 
                                             // Read-only input: the result can be selected and copied.
                                             TextInput {
-                                                text: root.result-text;
+                                                text: Strings.result(root.result-kind, root.result-text);
                                                 read-only: true;
                                                 wrap: word-wrap;
-                                                color: root.result-error ? Theme.error : Theme.text;
+                                                color: (root.result-kind == "error" || root.result-kind == "binary") ? Theme.error : Theme.text;
                                                 font-family: Theme.mono;
                                                 font-size: Theme.fs-base;
                                                 selection-background-color: Theme.text;
@@ -537,7 +559,7 @@ export component AppWindow inherits Window {
 
                 if root.running: HorizontalLayout {
                     x: 160px;
-                    width: parent.width - 160px - 188px;
+                    width: parent.width - 160px - 344px;
                     padding-top: 6px;
                     padding-bottom: 6px;
                     spacing: 12px;
@@ -569,6 +591,18 @@ export component AppWindow inherits Window {
                         text: @tr("Cancel");
                         clicked => { root.cancel-requested(); }
                     }
+                }
+
+                SSelect {
+                    x: parent.width - self.width - 164px;
+                    y: (parent.height - self.height) / 2;
+                    width: 140px;
+                    height: 28px;
+                    min-height: 28px;
+                    open-up: true;
+                    model: ["English", "Русский"];
+                    current-index <=> root.language-index;
+                    selected(index) => { root.language-selected(index); }
                 }
 
                 SSelect {

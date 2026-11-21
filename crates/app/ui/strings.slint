@@ -1,4 +1,5 @@
-// All user-visible text goes through @tr() so translations can be added later.
+// All user-visible text goes through @tr() so it can be translated (see lang/).
+// Rust code never builds user-facing text: it passes codes and values to these functions.
 export global Strings {
     pure public function category(key: string) -> string {
         if (key == "") { return @tr("All tools"); }
@@ -9,5 +10,49 @@ export global Strings {
         if (key == "files") { return @tr("Files"); }
         if (key == "dev") { return @tr("Development"); }
         return key;
+    }
+
+    // Tool texts come from the tool itself in English; a tool gets a branch here
+    // when it has a translation. `fallback` is the English text from the registry.
+    pure public function tool-name(id: string, fallback: string) -> string {
+        if (id == "text.repeat") { return @tr("Repeat text"); }
+        return fallback;
+    }
+
+    pure public function tool-description(id: string, fallback: string) -> string {
+        if (id == "text.repeat") { return @tr("Repeats the input text."); }
+        return fallback;
+    }
+
+    pure public function param-label(tool: string, param: string, fallback: string) -> string {
+        if (tool == "text.repeat" && param == "times") { return @tr("Times"); }
+        if (tool == "text.repeat" && param == "separator") { return @tr("Separator"); }
+        if (tool == "text.repeat" && param == "upper") { return @tr("Upper case"); }
+        return fallback;
+    }
+
+    pure public function range-hint(min: string, max: string) -> string {
+        if (min != "" && max != "") { return @tr("{} to {}", min, max); }
+        if (min != "") { return @tr("from {}", min); }
+        if (max != "") { return @tr("up to {}", max); }
+        return "";
+    }
+
+    // `arg` is the bound for below-min/above-max, and the raw (English) reason
+    // from the core for any other code.
+    pure public function field-error(code: string, arg: string) -> string {
+        if (code == "whole-number") { return @tr("Enter a whole number"); }
+        if (code == "number") { return @tr("Enter a number"); }
+        if (code == "below-min") { return @tr("Must be at least {}", arg); }
+        if (code == "above-max") { return @tr("Must be at most {}", arg); }
+        if (code == "unexpected") { return @tr("Unexpected input"); }
+        return arg;
+    }
+
+    pure public function result(kind: string, text: string) -> string {
+        if (kind == "cancelled") { return @tr("Cancelled"); }
+        if (kind == "empty") { return @tr("(empty result)"); }
+        if (kind == "binary") { return @tr("The result is binary data; saving files is not implemented yet."); }
+        return text;
     }
 }

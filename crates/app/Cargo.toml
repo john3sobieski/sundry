@@ -22,6 +22,8 @@ sundry-core.workspace = true
 sundry-cli.workspace = true
 slint.workspace = true
 tracing.workspace = true
+rfd.workspace = true
+sys-locale.workspace = true
 
 [build-dependencies]
 slint-build.workspace = true

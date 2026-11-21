@@ -3,14 +3,15 @@
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use sundry_core::{
-    Category, Error, Input, Item, Job, ParamKind, ParamSpec, Params, Registry, Settings, Tool,
-    Value, logging, params, settings,
+    Category, Error, Input, Item, Job, Language, ParamKind, ParamSpec, Params, Registry, Settings,
+    Tool, Value, logging, params, settings,
 };
 
 slint::include_modules!();
@@ -50,7 +51,20 @@ enum Edit {
 enum Outcome {
     Done(String),
     Failed(String),
+    Binary,
     Cancelled,
+}
+
+/// A validation problem: a code that the UI turns into text, and its argument.
+struct FieldError {
+    code: &'static str,
+    arg: String,
+}
+
+impl FieldError {
+    fn new(code: &'static str, arg: impl Into<String>) -> Self {
+        Self { code, arg: arg.into() }
+    }
 }
 
 /// Models shown by the window; refreshed whenever the category, query or tool changes.
@@ -113,7 +127,10 @@ impl Shell {
             Some(spec) => evaluate(spec, &edit),
             None => return,
         };
-        let error = result.as_ref().err().cloned().unwrap_or_default();
+        let (code, arg) = match &result {
+            Ok(_) => ("", String::new()),
+            Err(err) => (err.code, err.arg.clone()),
+        };
         form.values[index] = result.ok();
 
         if let Some(mut row) = self.fields.row_data(index) {
@@ -122,7 +139,8 @@ impl Shell {
                 Edit::Bool(checked) => row.checked = checked,
                 Edit::Choice(choice) => row.index = count(choice),
             }
-            row.error = error.into();
+            row.error_code = code.into();
+            row.error_arg = arg.into();
             self.fields.set_row_data(index, row);
         }
         tracing::debug!(tool = form.tool_id.as_str(), params = ?form.params(), "form updated");
@@ -168,7 +186,7 @@ impl Shell {
         let (tool, resolved) = match prepared {
             Ok(prepared) => prepared,
             Err(message) => {
-                ui.set_result_error(true);
+                ui.set_result_kind("error".into());
                 ui.set_result_text(message.into());
                 return;
             }
@@ -178,7 +196,7 @@ impl Shell {
         *self.job.borrow_mut() = Some(job.clone());
         ui.set_progress(0.0);
         ui.set_result_text("".into());
-        ui.set_result_error(false);
+        ui.set_result_kind("".into());
         ui.set_running(true);
 
         let text = ui.get_input_text().to_string();
@@ -190,17 +208,15 @@ impl Shell {
             let _ = slint::invoke_from_event_loop(move || {
                 let Some(ui) = weak.upgrade() else { return };
                 ui.set_running(false);
-                match outcome {
-                    Outcome::Done(text) if text.is_empty() => {
-                        ui.set_result_text("(empty result)".into());
-                    }
-                    Outcome::Done(text) => ui.set_result_text(text.into()),
-                    Outcome::Failed(message) => {
-                        ui.set_result_error(true);
-                        ui.set_result_text(message.into());
-                    }
-                    Outcome::Cancelled => ui.set_result_text("Cancelled".into()),
-                }
+                let (kind, text) = match outcome {
+                    Outcome::Done(text) if text.is_empty() => ("empty", String::new()),
+                    Outcome::Done(text) => ("text", text),
+                    Outcome::Failed(message) => ("error", message),
+                    Outcome::Binary => ("binary", String::new()),
+                    Outcome::Cancelled => ("cancelled", String::new()),
+                };
+                ui.set_result_text(text.into());
+                ui.set_result_kind(kind.into());
             });
         });
     }
@@ -252,11 +268,7 @@ fn run_blocking(
     for item in &output.items {
         match item.data.as_text() {
             Ok(text) => texts.push(text),
-            Err(_) => {
-                return Outcome::Failed(
-                    "The result is binary data; saving files is not implemented yet.".to_owned(),
-                );
-            }
+            Err(_) => return Outcome::Binary,
         }
     }
     Outcome::Done(texts.join("\n"))
@@ -281,13 +293,8 @@ fn label_of(id: &str) -> String {
     }
 }
 
-fn range_hint(lo: Option<String>, hi: Option<String>) -> String {
-    match (lo, hi) {
-        (Some(lo), Some(hi)) => format!("{lo} to {hi}"),
-        (Some(lo), None) => format!("from {lo}"),
-        (None, Some(hi)) => format!("up to {hi}"),
-        (None, None) => String::new(),
-    }
+fn bound_text<T: Display>(bound: &Option<T>) -> SharedString {
+    bound.as_ref().map(|v| v.to_string()).unwrap_or_default().into()
 }
 
 fn field_of(spec: &ParamSpec) -> FormField {
@@ -304,12 +311,14 @@ fn field_of(spec: &ParamSpec) -> FormField {
         ParamKind::Int { default, min, max } => {
             field.kind = "int".into();
             field.text = default.to_string().into();
-            field.hint = range_hint(min.map(|v| v.to_string()), max.map(|v| v.to_string())).into();
+            field.min = bound_text(min);
+            field.max = bound_text(max);
         }
         ParamKind::Float { default, min, max } => {
             field.kind = "float".into();
             field.text = default.to_string().into();
-            field.hint = range_hint(min.map(|v| v.to_string()), max.map(|v| v.to_string())).into();
+            field.min = bound_text(min);
+            field.max = bound_text(max);
         }
         ParamKind::Text { default } => {
             field.kind = "text".into();
@@ -325,27 +334,55 @@ fn field_of(spec: &ParamSpec) -> FormField {
     field
 }
 
+/// Reports the first violated bound, as a code for the UI.
+fn check_bounds<T: PartialOrd + Display>(
+    value: &T,
+    min: &Option<T>,
+    max: &Option<T>,
+) -> Result<(), FieldError> {
+    if let Some(lo) = min
+        && value < lo
+    {
+        return Err(FieldError::new("below-min", lo.to_string()));
+    }
+    if let Some(hi) = max
+        && value > hi
+    {
+        return Err(FieldError::new("above-max", hi.to_string()));
+    }
+    Ok(())
+}
+
 /// Turns raw input into a value and checks it against the spec.
-fn evaluate(spec: &ParamSpec, edit: &Edit) -> Result<Value, String> {
+fn evaluate(spec: &ParamSpec, edit: &Edit) -> Result<Value, FieldError> {
     let value = match (&spec.kind, edit) {
-        (ParamKind::Int { .. }, Edit::Text(text)) => {
-            Value::Int(text.trim().parse().map_err(|_| "Enter a whole number".to_owned())?)
+        (ParamKind::Int { min, max, .. }, Edit::Text(text)) => {
+            let n: i64 =
+                text.trim().parse().map_err(|_| FieldError::new("whole-number", ""))?;
+            check_bounds(&n, min, max)?;
+            Value::Int(n)
         }
-        (ParamKind::Float { .. }, Edit::Text(text)) => {
+        (ParamKind::Float { min, max, .. }, Edit::Text(text)) => {
             // Accept a decimal comma as well as a point.
-            let text = text.trim().replace(',', ".");
-            Value::Float(text.parse().map_err(|_| "Enter a number".to_owned())?)
+            let n: f64 = text
+                .trim()
+                .replace(',', ".")
+                .parse()
+                .map_err(|_| FieldError::new("number", ""))?;
+            check_bounds(&n, min, max)?;
+            Value::Float(n)
         }
         (ParamKind::Text { .. }, Edit::Text(text)) => Value::Text(text.clone()),
         (ParamKind::Bool { .. }, Edit::Bool(checked)) => Value::Bool(*checked),
         (ParamKind::Choice { options, .. }, Edit::Choice(index)) => {
             Value::Text(options.get(*index).cloned().unwrap_or_default())
         }
-        _ => return Err("Unexpected input".to_owned()),
+        _ => return Err(FieldError::new("unexpected", "")),
     };
+    // Anything the checks above did not catch: the core's own (English) reason.
     spec.check(&value).map_err(|err| match err {
-        Error::InvalidParam { reason, .. } => reason,
-        other => other.to_string(),
+        Error::InvalidParam { reason, .. } => FieldError::new("invalid", reason),
+        other => FieldError::new("invalid", other.to_string()),
     })
 }
 
@@ -366,6 +403,38 @@ fn theme_of(index: i32) -> sundry_core::Theme {
         1 => sundry_core::Theme::Light,
         2 => sundry_core::Theme::Dark,
         _ => sundry_core::Theme::Auto,
+    }
+}
+
+fn language_index(language: Language) -> i32 {
+    match language {
+        Language::En => 0,
+        Language::Ru => 1,
+        Language::Auto => {
+            let russian = sys_locale::get_locale().is_some_and(|l| l.to_lowercase().starts_with("ru"));
+            i32::from(russian)
+        }
+    }
+}
+
+fn language_of(index: i32) -> Language {
+    if index == 1 { Language::Ru } else { Language::En }
+}
+
+fn apply_language(language: Language) {
+    let code = if language_index(language) == 1 { "ru" } else { "en" };
+    if let Err(err) = slint::select_bundled_translation(code) {
+        tracing::warn!("cannot select language {code}: {err:?}");
+    }
+}
+
+/// Re-reads the settings file, applies `change` and writes it back.
+fn update_settings(change: impl FnOnce(&mut Settings)) {
+    let mut config = load_settings();
+    change(&mut config);
+    let saved = settings::default_path().and_then(|path| config.save(&path));
+    if let Err(err) = saved {
+        tracing::warn!("cannot save settings: {err}");
     }
 }
 
@@ -395,6 +464,19 @@ fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
             if let Some(i) = index_of(i) {
                 shell.remove_file(i);
             }
+        }
+    });
+    ui.on_files_requested({
+        let shell = Rc::clone(shell);
+        move || {
+            let shell = Rc::clone(&shell);
+            // The dialog runs on the event loop without blocking it; the handle is
+            // dropped on purpose, which detaches the task.
+            let _ = slint::spawn_local(async move {
+                if let Some(files) = rfd::AsyncFileDialog::new().pick_files().await {
+                    shell.add_files(files.iter().map(|f| f.path().to_path_buf()).collect());
+                }
+            });
         }
     });
     ui.on_files_cleared({
@@ -491,6 +573,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui.set_input_files(ModelRc::from(shell.file_names.clone()));
     ui.set_tool_total(count(shell.registry.len()));
 
+    apply_language(config.language);
+    ui.set_language_index(language_index(config.language));
     let (mode, index) = mode_of(config.theme);
     ui.global::<Theme>().set_mode(mode);
     ui.set_theme_index(index);
@@ -524,13 +608,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    ui.on_theme_selected(move |index| {
-        let mut config = load_settings();
-        config.theme = theme_of(index);
-        let saved = settings::default_path().and_then(|path| config.save(&path));
-        if let Err(err) = saved {
-            tracing::warn!("cannot save settings: {err}");
-        }
+    ui.on_theme_selected(|index| update_settings(|c| c.theme = theme_of(index)));
+    ui.on_language_selected(|index| {
+        let language = language_of(index);
+        apply_language(language);
+        update_settings(|c| c.language = language);
     });
 
     ui.run()?;

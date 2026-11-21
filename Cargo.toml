@@ -1,17 +1,20 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/cli"]
+members = ["crates/core", "crates/cli", "crates/app"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.92"
 license = "PolyForm-Noncommercial-1.0.0"
 authors = ["john3sobieski"]
 publish = false
 
 [workspace.dependencies]
 sundry-core = { path = "crates/core" }
+sundry-cli = { path = "crates/cli" }
+slint = "1.17"
+slint-build = "1.17"
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 toml = "0.9"

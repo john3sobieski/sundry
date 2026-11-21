@@ -1,2 +1,20 @@
 /target
 *.zip
+
+# Local tool caches and home-directory leftovers
+/.cache/
+/.config/
+/.local/
+/.npm/
+/.npm-global/
+/.npmrc
+
+# Editors and OS files
+/.vscode/
+/.idea/
+.DS_Store
+Thumbs.db
+
+# Local settings (portable mode)
+/settings.toml
+/sundry.portable

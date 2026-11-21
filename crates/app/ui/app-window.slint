@@ -1,0 +1,322 @@
+import { ListView } from "std-widgets.slint";
+import { Theme, ThemeMode } from "theme.slint";
+import { Strings } from "strings.slint";
+import { SField } from "components/field.slint";
+import { SSelect } from "components/select.slint";
+
+// Re-exported so they are compiled and checked even before a screen uses them.
+export { SButton } from "components/button.slint";
+export { SSwitch } from "components/switch.slint";
+export { Theme, ThemeMode, Strings }
+
+export struct CategoryItem {
+    // Empty key = "all tools".
+    key: string,
+    count: int,
+}
+
+export struct ToolItem {
+    id: string,
+    name: string,
+    description: string,
+}
+
+component NavItem inherits Rectangle {
+    in property <string> label;
+    in property <int> count;
+    in property <bool> selected;
+    callback clicked();
+
+    height: 32px;
+    background: area.has-hover ? Theme.raised : transparent;
+    animate background { duration: Theme.anim; easing: ease-out; }
+
+    // Selection marker: a bar on the left.
+    Rectangle {
+        x: 0;
+        width: 3px;
+        background: Theme.text;
+        visible: root.selected;
+    }
+
+    Text {
+        x: 16px;
+        width: parent.width - 64px;
+        height: parent.height;
+        text: root.label;
+        color: Theme.text;
+        font-size: Theme.fs-base;
+        font-weight: root.selected ? 600 : 400;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+
+    Text {
+        x: parent.width - 44px;
+        width: 32px;
+        height: parent.height;
+        text: root.count;
+        color: Theme.text-2;
+        font-family: Theme.mono;
+        font-size: Theme.fs-small;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component ToolRow inherits Rectangle {
+    in property <ToolItem> tool;
+    in property <bool> selected;
+    callback clicked();
+
+    height: 52px;
+    background: area.has-hover ? Theme.surface : transparent;
+    animate background { duration: Theme.anim; easing: ease-out; }
+
+    Rectangle {
+        x: 0;
+        width: 3px;
+        background: Theme.text;
+        visible: root.selected;
+    }
+
+    VerticalLayout {
+        padding-left: 16px;
+        padding-right: 12px;
+        alignment: center;
+        spacing: 2px;
+
+        Text {
+            text: root.tool.name;
+            color: Theme.text;
+            font-size: Theme.fs-base;
+            font-weight: root.selected ? 600 : 400;
+            overflow: elide;
+        }
+
+        Text {
+            text: root.tool.description;
+            color: Theme.text-2;
+            font-size: Theme.fs-small;
+            overflow: elide;
+        }
+    }
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.divider;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "Sundry";
+    min-width: 760px;
+    min-height: 480px;
+    preferred-width: 1040px;
+    preferred-height: 680px;
+    background: Theme.bg;
+    default-font-size: Theme.fs-base;
+
+    in property <[CategoryItem]> categories;
+    in property <[ToolItem]> tools;
+    in property <int> tool-total;
+    in-out property <string> selected-category: "";
+    in-out property <string> query: "";
+    in-out property <ToolItem> current-tool;
+    in-out property <bool> has-current-tool: false;
+    in-out property <int> theme-index: 0;
+
+    callback category-selected(string);
+    callback search-edited(string);
+    callback tool-selected(ToolItem);
+    callback theme-selected(int);
+
+    // Ctrl+K focuses the search field.
+    scope := FocusScope {
+        key-pressed(event) => {
+            if ((event.modifiers.control || event.modifiers.meta) && event.text == "k") {
+                search.focus();
+                return accept;
+            }
+            return reject;
+        }
+
+        VerticalLayout {
+            HorizontalLayout {
+                // Categories
+                Rectangle {
+                    width: 200px;
+                    background: Theme.surface;
+
+                    VerticalLayout {
+                        padding-top: 12px;
+
+                        Text {
+                            text: "Sundry";
+                            color: Theme.text;
+                            font-size: Theme.fs-title;
+                            font-weight: 600;
+                            height: 40px;
+                            x: 16px;
+                            vertical-alignment: center;
+                        }
+
+                        for category in root.categories: NavItem {
+                            label: Strings.category(category.key);
+                            count: category.count;
+                            selected: category.key == root.selected-category;
+                            clicked => {
+                                root.selected-category = category.key;
+                                root.category-selected(category.key);
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: 1px;
+                    background: Theme.divider;
+                }
+
+                // Search, tool list and details
+                VerticalLayout {
+                    Rectangle {
+                        height: 56px;
+
+                        search := SField {
+                            x: 16px;
+                            y: 12px;
+                            width: parent.width - 32px;
+                            placeholder: @tr("Search tools (Ctrl+K)");
+                            text <=> root.query;
+                            edited(value) => { root.search-edited(value); }
+                        }
+                    }
+
+                    Rectangle {
+                        height: 1px;
+                        background: Theme.divider;
+                    }
+
+                    HorizontalLayout {
+                        Rectangle {
+                            width: 320px;
+
+                            if root.tools.length == 0: Text {
+                                x: 16px;
+                                y: 16px;
+                                width: parent.width - 32px;
+                                wrap: word-wrap;
+                                color: Theme.text-2;
+                                text: root.tool-total == 0
+                                    ? @tr("No tools are registered yet.")
+                                    : @tr("No tools match your search.");
+                            }
+
+                            ListView {
+                                for item in root.tools: ToolRow {
+                                    tool: item;
+                                    selected: root.has-current-tool && item.id == root.current-tool.id;
+                                    clicked => {
+                                        root.current-tool = item;
+                                        root.has-current-tool = true;
+                                        root.tool-selected(item);
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: 1px;
+                            background: Theme.divider;
+                        }
+
+                        Rectangle {
+                            VerticalLayout {
+                                padding: 24px;
+                                spacing: 8px;
+                                alignment: start;
+
+                                if root.has-current-tool: Text {
+                                    text: root.current-tool.name;
+                                    color: Theme.text;
+                                    font-size: Theme.fs-title;
+                                    font-weight: 600;
+                                    wrap: word-wrap;
+                                }
+
+                                if root.has-current-tool: Text {
+                                    text: root.current-tool.description;
+                                    color: Theme.text-2;
+                                    font-size: Theme.fs-medium;
+                                    wrap: word-wrap;
+                                }
+
+                                if root.has-current-tool: Text {
+                                    text: root.current-tool.id;
+                                    color: Theme.text-3;
+                                    font-family: Theme.mono;
+                                    font-size: Theme.fs-small;
+                                }
+
+                                if !root.has-current-tool: Text {
+                                    text: @tr("Select a tool from the list.");
+                                    color: Theme.text-2;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                height: 1px;
+                background: Theme.divider;
+            }
+
+            // Status bar (progress and cancel arrive with the first long-running tool)
+            Rectangle {
+                height: 40px;
+                background: Theme.surface;
+
+                Text {
+                    x: 16px;
+                    height: parent.height;
+                    text: @tr("{} tools", root.tool-total);
+                    color: Theme.text-2;
+                    font-size: Theme.fs-small;
+                    vertical-alignment: center;
+                }
+
+                SSelect {
+                    x: parent.width - self.width - 16px;
+                    y: (parent.height - self.height) / 2;
+                    width: 140px;
+                    height: 28px;
+                    min-height: 28px;
+                    open-up: true;
+                    model: [@tr("Theme: system"), @tr("Theme: light"), @tr("Theme: dark")];
+                    current-index <=> root.theme-index;
+                    selected(index) => {
+                        Theme.mode = index == 1 ? ThemeMode.light
+                            : index == 2 ? ThemeMode.dark : ThemeMode.system;
+                        root.theme-selected(index);
+                    }
+                }
+            }
+        }
+    }
+
+    init => {
+        scope.focus();
+    }
+}

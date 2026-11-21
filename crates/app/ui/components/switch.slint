@@ -1,0 +1,65 @@
+import { Theme } from "../theme.slint";
+
+export component SSwitch inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback toggled(bool);
+
+    min-height: 24px;
+    opacity: enabled ? 1 : 0.4;
+
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == " " || event.text == Key.Return) {
+                root.checked = !root.checked;
+                root.toggled(root.checked);
+                return accept;
+            }
+            return reject;
+        }
+
+        area := TouchArea {
+            enabled: root.enabled;
+            clicked => {
+                fs.focus();
+                root.checked = !root.checked;
+                root.toggled(root.checked);
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+
+            Rectangle {
+                width: 36px;
+                height: 20px;
+                y: (parent.height - self.height) / 2;
+                border-radius: Theme.radius;
+                border-width: fs.has-focus ? 2px : 1px;
+                border-color: fs.has-focus ? Theme.text : Theme.control-border;
+                background: root.checked ? Theme.text : Theme.raised;
+                animate background { duration: Theme.anim; easing: ease-out; }
+
+                Rectangle {
+                    width: 12px;
+                    height: 12px;
+                    y: (parent.height - self.height) / 2;
+                    x: root.checked ? parent.width - self.width - 4px : 4px;
+                    border-radius: 2px;
+                    background: root.checked ? Theme.bg : Theme.text-2;
+                    animate x { duration: Theme.anim; easing: ease-out; }
+                }
+            }
+
+            if root.text != "": Text {
+                text: root.text;
+                color: Theme.text;
+                font-size: Theme.fs-base;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

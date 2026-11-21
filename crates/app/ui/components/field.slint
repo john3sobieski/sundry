@@ -1,0 +1,48 @@
+import { Theme } from "../theme.slint";
+
+export component SField inherits Rectangle {
+    in-out property <string> text <=> input.text;
+    in property <string> placeholder;
+    in property <bool> mono: false;
+    callback edited(string);
+    callback accepted(string);
+
+    public function focus() {
+        input.focus();
+    }
+
+    min-height: 32px;
+    border-radius: Theme.radius;
+    border-width: input.has-focus ? 2px : 1px;
+    border-color: input.has-focus ? Theme.text : Theme.control-border;
+    background: Theme.raised;
+    animate border-color { duration: Theme.anim; easing: ease-out; }
+
+    input := TextInput {
+        x: 10px;
+        width: parent.width - 20px;
+        height: parent.height;
+        vertical-alignment: center;
+        color: Theme.text;
+        font-size: Theme.fs-base;
+        font-family: root.mono ? Theme.mono : "";
+        selection-background-color: Theme.text;
+        selection-foreground-color: Theme.bg;
+        single-line: true;
+        edited => {
+            root.edited(self.text);
+        }
+        accepted => {
+            root.accepted(self.text);
+        }
+    }
+
+    if input.text == "": Text {
+        x: 10px;
+        height: parent.height;
+        text: root.placeholder;
+        color: Theme.text-3;
+        font-size: Theme.fs-base;
+        vertical-alignment: center;
+    }
+}

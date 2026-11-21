@@ -1,0 +1,107 @@
+import { Theme } from "../theme.slint";
+
+export component SSelect inherits Rectangle {
+    in property <[string]> model;
+    in-out property <int> current-index: 0;
+    // Open the list above the control (for controls at the bottom of the window).
+    in property <bool> open-up: false;
+    callback selected(int);
+
+    min-height: 32px;
+    min-width: 120px;
+    border-radius: Theme.radius;
+    border-width: fs.has-focus ? 2px : 1px;
+    border-color: fs.has-focus ? Theme.text : Theme.control-border;
+    background: area.has-hover ? Theme.surface : Theme.raised;
+    animate background { duration: Theme.anim; easing: ease-out; }
+
+    fs := FocusScope {
+        key-pressed(event) => {
+            if (event.text == " " || event.text == Key.Return) {
+                popup.show();
+                return accept;
+            }
+            return reject;
+        }
+
+        area := TouchArea {
+            clicked => {
+                fs.focus();
+                popup.show();
+            }
+        }
+
+        Text {
+            x: 10px;
+            width: parent.width - 36px;
+            height: parent.height;
+            text: root.model[root.current-index];
+            color: Theme.text;
+            font-size: Theme.fs-base;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        Path {
+            x: parent.width - 22px;
+            y: (parent.height - self.height) / 2;
+            width: 10px;
+            height: 6px;
+            viewbox-width: 10;
+            viewbox-height: 6;
+            commands: "M 0 0 L 5 5 L 10 0";
+            stroke: Theme.text-2;
+            stroke-width: 1.5px;
+        }
+    }
+
+    popup := PopupWindow {
+        x: 0;
+        y: root.open-up ? -self.height - 2px : root.height + 2px;
+        width: root.width;
+        height: root.model.length * 32px + 2px;
+
+        Rectangle {
+            background: Theme.raised;
+            border-width: 1px;
+            border-color: Theme.control-border;
+            border-radius: Theme.radius;
+
+            VerticalLayout {
+                padding: 1px;
+
+                for label[index] in root.model: Rectangle {
+                    height: 32px;
+                    background: item-area.has-hover ? Theme.surface : transparent;
+
+                    // Selection marker: a bar, not a shade of gray.
+                    Rectangle {
+                        x: 0;
+                        width: 2px;
+                        background: Theme.text;
+                        visible: index == root.current-index;
+                    }
+
+                    Text {
+                        x: 10px;
+                        width: parent.width - 20px;
+                        height: parent.height;
+                        text: label;
+                        color: Theme.text;
+                        font-size: Theme.fs-base;
+                        font-weight: index == root.current-index ? 600 : 400;
+                        vertical-alignment: center;
+                    }
+
+                    item-area := TouchArea {
+                        clicked => {
+                            root.current-index = index;
+                            root.selected(index);
+                            popup.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

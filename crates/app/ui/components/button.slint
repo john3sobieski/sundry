@@ -1,0 +1,47 @@
+import { Theme } from "../theme.slint";
+
+export component SButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    min-width: 72px;
+    min-height: 32px;
+    border-radius: Theme.radius;
+    border-width: fs.has-focus ? 2px : 1px;
+    border-color: fs.has-focus ? Theme.text : (primary ? Theme.text : Theme.control-border);
+    background: primary ? Theme.text : (area.has-hover && enabled ? Theme.surface : Theme.raised);
+    opacity: enabled ? 1 : 0.4;
+    animate background { duration: Theme.anim; easing: ease-out; }
+
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == " " || event.text == Key.Return) {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+
+        area := TouchArea {
+            enabled: root.enabled;
+            clicked => {
+                fs.focus();
+                root.clicked();
+            }
+        }
+
+        Text {
+            width: parent.width;
+            height: parent.height;
+            text: root.text;
+            color: root.primary ? Theme.bg : Theme.text;
+            font-size: Theme.fs-base;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}

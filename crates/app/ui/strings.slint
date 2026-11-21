@@ -1,0 +1,13 @@
+// All user-visible text goes through @tr() so translations can be added later.
+export global Strings {
+    pure public function category(key: string) -> string {
+        if (key == "") { return @tr("All tools"); }
+        if (key == "image") { return @tr("Images"); }
+        if (key == "vector") { return @tr("Vector"); }
+        if (key == "convert") { return @tr("Converters"); }
+        if (key == "text") { return @tr("Text"); }
+        if (key == "files") { return @tr("Files"); }
+        if (key == "dev") { return @tr("Development"); }
+        return key;
+    }
+}

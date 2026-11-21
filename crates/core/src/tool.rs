@@ -56,12 +56,7 @@ impl ToolInfo {
         name: impl Into<String>,
         description: impl Into<String>,
     ) -> Self {
-        Self {
-            id: id.into(),
-            name: name.into(),
-            description: description.into(),
-            category,
-        }
+        Self { id: id.into(), name: name.into(), description: description.into(), category }
     }
 }
 

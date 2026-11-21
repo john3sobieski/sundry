@@ -56,9 +56,7 @@ impl Registry {
     }
 
     pub fn get(&self, id: &str) -> Result<&ToolEntry> {
-        self.tools
-            .get(id)
-            .ok_or_else(|| Error::ToolNotFound(id.to_owned()))
+        self.tools.get(id).ok_or_else(|| Error::ToolNotFound(id.to_owned()))
     }
 
     /// All tools, ordered by id.
@@ -107,15 +105,15 @@ impl Registry {
     }
 }
 
+fn is_id_char(c: char) -> bool {
+    matches!(c, 'a'..='z' | '0'..='9' | '.' | '-' | '_')
+}
+
 fn validate_definition(info: &ToolInfo, params: &[ParamSpec]) -> Result<()> {
     let invalid = |reason: String| Error::InvalidTool { id: info.id.clone(), reason };
-    let id_ok = !info.id.is_empty()
-        && info
-            .id
-            .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '-' | '_'));
+    let id_ok = !info.id.is_empty() && info.id.chars().all(is_id_char);
     if !id_ok {
-        return Err(invalid("id must be non-empty and use only a-z, 0-9, '.', '-', '_'".to_owned()));
+        return Err(invalid("id must use only a-z, 0-9, '.', '-', '_'".to_owned()));
     }
     for (i, spec) in params.iter().enumerate() {
         if params[..i].iter().any(|p| p.id == spec.id) {

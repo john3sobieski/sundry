@@ -35,11 +35,7 @@ impl Job {
 
     /// Returns `Err(Error::Cancelled)` if the job was cancelled; call it in loops.
     pub fn check_cancelled(&self) -> Result<()> {
-        if self.is_cancelled() {
-            Err(Error::Cancelled)
-        } else {
-            Ok(())
-        }
+        if self.is_cancelled() { Err(Error::Cancelled) } else { Ok(()) }
     }
 
     /// Sets progress as a fraction in `0.0..=1.0` (clamped, NaN ignored).

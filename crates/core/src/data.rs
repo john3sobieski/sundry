@@ -67,9 +67,7 @@ impl Input {
 
     /// First item, or an error if the input is empty.
     pub fn first(&self) -> Result<&Item> {
-        self.items
-            .first()
-            .ok_or_else(|| Error::InvalidInput("no input items".to_owned()))
+        self.items.first().ok_or_else(|| Error::InvalidInput("no input items".to_owned()))
     }
 }
 
@@ -93,10 +91,7 @@ mod tests {
         assert_eq!(Data::Empty.as_text().unwrap(), "");
         assert_eq!(Data::Text("hi".into()).as_text().unwrap(), "hi");
         assert_eq!(Data::Bytes(b"yo".to_vec()).as_text().unwrap(), "yo");
-        assert!(matches!(
-            Data::Bytes(vec![0xff, 0xfe]).as_text(),
-            Err(Error::InvalidInput(_))
-        ));
+        assert!(matches!(Data::Bytes(vec![0xff, 0xfe]).as_text(), Err(Error::InvalidInput(_))));
     }
 
     #[test]

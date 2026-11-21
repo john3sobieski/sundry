@@ -99,10 +99,7 @@ impl ParamSpec {
     }
 
     pub fn int_range(id: impl Into<String>, default: i64, min: i64, max: i64) -> Self {
-        Self {
-            id: id.into(),
-            kind: ParamKind::Int { default, min: Some(min), max: Some(max) },
-        }
+        Self { id: id.into(), kind: ParamKind::Int { default, min: Some(min), max: Some(max) } }
     }
 
     pub fn float(id: impl Into<String>, default: f64) -> Self {
@@ -110,10 +107,7 @@ impl ParamSpec {
     }
 
     pub fn float_range(id: impl Into<String>, default: f64, min: f64, max: f64) -> Self {
-        Self {
-            id: id.into(),
-            kind: ParamKind::Float { default, min: Some(min), max: Some(max) },
-        }
+        Self { id: id.into(), kind: ParamKind::Float { default, min: Some(min), max: Some(max) } }
     }
 
     pub fn text(id: impl Into<String>, default: impl Into<String>) -> Self {
@@ -280,9 +274,7 @@ impl Params {
     }
 
     fn require(&self, id: &str) -> Result<&Value> {
-        self.values
-            .get(id)
-            .ok_or_else(|| Error::MissingParam(id.to_owned()))
+        self.values.get(id).ok_or_else(|| Error::MissingParam(id.to_owned()))
     }
 }
 

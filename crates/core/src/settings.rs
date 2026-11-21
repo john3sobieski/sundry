@@ -96,9 +96,7 @@ impl Settings {
 /// Where the settings file lives: next to the exe in portable mode,
 /// otherwise in the user's config directory.
 pub fn default_path() -> Result<PathBuf> {
-    let exe_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(Path::to_path_buf));
+    let exe_dir = std::env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf));
     locate(exe_dir.as_deref(), |key| std::env::var_os(key))
 }
 
@@ -115,8 +113,7 @@ fn locate(exe_dir: Option<&Path>, env: impl Fn(&str) -> Option<OsString>) -> Res
             .map(PathBuf::from)
             .or_else(|| env("HOME").map(|home| PathBuf::from(home).join(".config")))
     };
-    base.map(|b| b.join(APP_DIR).join(FILE_NAME))
-        .ok_or(Error::NoConfigDir)
+    base.map(|b| b.join(APP_DIR).join(FILE_NAME)).ok_or(Error::NoConfigDir)
 }
 
 #[cfg(test)]
@@ -130,7 +127,8 @@ mod tests {
         fn new() -> Self {
             static COUNTER: AtomicU32 = AtomicU32::new(0);
             let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-            let dir = std::env::temp_dir().join(format!("sundry-test-{}-{n}", std::process::id()));
+            let name = format!("sundry-test-{}-{n}", std::process::id());
+            let dir = std::env::temp_dir().join(name);
             std::fs::create_dir_all(&dir).unwrap();
             Self(dir)
         }
@@ -160,10 +158,8 @@ mod tests {
 
     #[test]
     fn invalid_value_is_an_error() {
-        assert!(matches!(
-            Settings::from_toml("theme = \"purple\""),
-            Err(Error::SettingsParse(_))
-        ));
+        let res = Settings::from_toml("theme = \"purple\"");
+        assert!(matches!(res, Err(Error::SettingsParse(_))));
     }
 
     #[test]
@@ -213,10 +209,7 @@ mod tests {
     fn falls_back_to_home_config() {
         let env = |key: &str| (key == "HOME").then(|| OsString::from("home"));
         let path = locate(None, env).unwrap();
-        assert_eq!(
-            path,
-            PathBuf::from("home").join(".config").join(APP_DIR).join(FILE_NAME)
-        );
+        assert_eq!(path, PathBuf::from("home").join(".config").join(APP_DIR).join(FILE_NAME));
     }
 
     #[test]

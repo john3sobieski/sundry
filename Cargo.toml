@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/core"]
+members = ["crates/core", "crates/cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +11,7 @@ authors = ["john3sobieski"]
 publish = false
 
 [workspace.dependencies]
+sundry-core = { path = "crates/core" }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 toml = "0.9"

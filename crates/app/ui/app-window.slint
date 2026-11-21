@@ -144,7 +144,7 @@ export component AppWindow inherits Window {
     scope := FocusScope {
         key-pressed(event) => {
             if ((event.modifiers.control || event.modifiers.meta) && event.text == "k") {
-                search.focus();
+                search.focus-input();
                 return accept;
             }
             return reject;

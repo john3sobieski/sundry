@@ -140,7 +140,8 @@ fn runs_with_defaults() {
 
 #[test]
 fn runs_with_parameters() {
-    let out = cli(&["text.repeat", "-t", "ab", "-p", "times=3", "-p", "separator=-", "-p", "upper"]);
+    let out =
+        cli(&["text.repeat", "-t", "ab", "-p", "times=3", "-p", "separator=-", "-p", "upper"]);
     assert_eq!(out.code, 0, "{}", out.stderr);
     assert_eq!(out.out(), "AB-AB-AB\n");
     let out = cli(&["text.repeat", "--text=x", "--param=times=1", "--param", "upper=no"]);

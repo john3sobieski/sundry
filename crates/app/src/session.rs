@@ -144,11 +144,7 @@ fn set_note(weak: &slint::Weak<AppWindow>, kind: &str, arg: &str) {
     }
 }
 
-fn pack(
-    entries: &[Arc<ResultEntry>],
-    format: ArchiveFormat,
-    path: &Path,
-) -> Result<usize, String> {
+fn pack(entries: &[Arc<ResultEntry>], format: ArchiveFormat, path: &Path) -> Result<usize, String> {
     let names = unique_names(entries.iter().map(|e| Some(e.name.as_str())));
     let items: Vec<Entry<'_>> =
         names.iter().zip(entries).map(|(name, e)| Entry { name, data: &e.data }).collect();

@@ -169,7 +169,8 @@ mod tests {
     #[test]
     fn progress_can_cancel() {
         let entries = [Entry { name: "a", data: b"x" }, Entry { name: "b", data: b"y" }];
-        let result = write_archive(ArchiveFormat::Zip, &entries, Cursor::new(Vec::new()), |_| false);
+        let result =
+            write_archive(ArchiveFormat::Zip, &entries, Cursor::new(Vec::new()), |_| false);
         assert!(matches!(result, Err(ArchiveError::Cancelled)));
     }
 }

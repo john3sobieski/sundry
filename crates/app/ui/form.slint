@@ -32,28 +32,34 @@ export component FormRow inherits VerticalLayout {
 
     max-width: 440px;
     spacing: 4px;
-    // A hidden row takes no room (rows carry their own bottom padding).
-    visible: root.field.visible;
-    max-height: root.field.visible ? 1000px : 0px;
-    padding-bottom: root.field.visible ? 12px : 0px;
+    // Space below the row; rows that are not shown are not created at all
+    // (see `FormField.visible`), so the gap belongs to the row, not to its parent.
+    in property <length> gap: 0px;
+    padding-bottom: root.gap;
 
+    // Label and range hint may be cut with an ellipsis instead of widening the
+    // row past a narrow column.
     if root.field.kind != "bool": HorizontalLayout {
+        spacing: 8px;
+
         Text {
+            horizontal-stretch: 1;
+            min-width: 0px;
             text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
             color: Theme.text;
             font-size: Theme.fs-base;
             font-weight: 600;
-        }
-
-        Rectangle {
-            horizontal-stretch: 1;
+            overflow: elide;
         }
 
         Text {
+            min-width: 0px;
             text: Strings.range-hint(root.field.min, root.field.max);
             color: Theme.text-3;
             font-family: Theme.mono;
             font-size: Theme.fs-small;
+            overflow: elide;
+            horizontal-alignment: right;
         }
     }
 

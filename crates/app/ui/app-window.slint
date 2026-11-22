@@ -293,9 +293,27 @@ export component AppWindow inherits Window {
                                     DropApi.dropped(event.data);
                                     return event.proposed-action;
                                 }
+
+                                // Inside the drop area, so files can be dropped onto the workspace too.
+                                if root.workspace: ImageWorkspace {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    tool-id: root.current-tool.id;
+                                    tool-title: Strings.tool-name(root.current-tool.id, root.current-tool.name);
+                                    form: root.form;
+                                    form-valid: root.form-valid;
+                                    running: root.running;
+                                    field-edited(i, value) => { root.field-edited(i, value); }
+                                    field-toggled(i, value) => { root.field-toggled(i, value); }
+                                    field-selected(i, choice) => { root.field-selected(i, choice); }
+                                    run-requested => { root.run-requested(); }
+                                    leave-requested => {
+                                        root.has-current-tool = false;
+                                    }
+                                }
                             }
 
-                            VerticalLayout {
+                            if !root.workspace: VerticalLayout {
                                 padding: 24px;
                                 spacing: 8px;
 
@@ -330,12 +348,14 @@ export component AppWindow inherits Window {
                                         spacing: 16px;
                                         alignment: start;
 
-                                        for item[index] in root.form: FormRow {
-                                            tool-id: root.current-tool.id;
-                                            field: item;
-                                            edited(value) => { root.field-edited(index, value); }
-                                            toggled(value) => { root.field-toggled(index, value); }
-                                            selected(choice) => { root.field-selected(index, choice); }
+                                        for item[index] in root.form: VerticalLayout {
+                                            if item.visible: FormRow {
+                                                tool-id: root.current-tool.id;
+                                                field: item;
+                                                edited(value) => { root.field-edited(index, value); }
+                                                toggled(value) => { root.field-toggled(index, value); }
+                                                selected(choice) => { root.field-selected(index, choice); }
+                                            }
                                         }
 
                                         if root.current-tool.input != "none": VerticalLayout {
@@ -450,23 +470,6 @@ export component AppWindow inherits Window {
 
                                 if !root.has-current-tool: Rectangle {
                                     vertical-stretch: 1;
-                                }
-                            }
-
-                            if root.workspace: ImageWorkspace {
-                                width: parent.width;
-                                height: parent.height;
-                                tool-id: root.current-tool.id;
-                                tool-title: Strings.tool-name(root.current-tool.id, root.current-tool.name);
-                                form: root.form;
-                                form-valid: root.form-valid;
-                                running: root.running;
-                                field-edited(i, value) => { root.field-edited(i, value); }
-                                field-toggled(i, value) => { root.field-toggled(i, value); }
-                                field-selected(i, choice) => { root.field-selected(i, choice); }
-                                run-requested => { root.run-requested(); }
-                                leave-requested => {
-                                    root.has-current-tool = false;
                                 }
                             }
 

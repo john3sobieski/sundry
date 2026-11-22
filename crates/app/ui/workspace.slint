@@ -137,7 +137,7 @@ export component ImageWorkspace inherits Rectangle {
 
     // Derived from this component's own width, not from the layout below: the
     // download rows depend on `wide`, and the viewers' width depends on them.
-    property <length> area-w: root.width - 526px - 24px;
+    property <length> area-w: root.width - 526px;
     property <bool> wide: area-w >= 620px;
     property <length> vw: root.wide ? (area-w - 8px) / 2 : area-w;
 
@@ -176,17 +176,23 @@ export component ImageWorkspace inherits Rectangle {
 
                 ScrollView {
                     vertical-stretch: 1;
+                    viewport-width: self.visible-width;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
 
                     VerticalLayout {
                         padding-top: 4px;
                         alignment: start;
 
-                        for item[index] in root.form: FormRow {
-                            tool-id: root.tool-id;
-                            field: item;
-                            edited(value) => { root.field-edited(index, value); }
-                            toggled(value) => { root.field-toggled(index, value); }
-                            selected(choice) => { root.field-selected(index, choice); }
+                        // A wrapper per field: a field that is not shown leaves it empty (zero height).
+                        for item[index] in root.form: VerticalLayout {
+                            if item.visible: FormRow {
+                                tool-id: root.tool-id;
+                                field: item;
+                                gap: 14px;
+                                edited(value) => { root.field-edited(index, value); }
+                                toggled(value) => { root.field-toggled(index, value); }
+                                selected(choice) => { root.field-selected(index, choice); }
+                            }
                         }
                     }
                 }
@@ -275,24 +281,27 @@ export component ImageWorkspace inherits Rectangle {
                     background: Theme.divider;
                 }
 
+                // Same padding and button height as the settings column, so the
+                // "Add files" and "Run" buttons sit on one line.
                 Rectangle {
-                    height: 76px;
+                    height: 92px;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 6px;
-
-                        SButton {
-                            text: @tr("Add files...");
-                            enabled: !root.running;
-                            clicked => { Workspace.add-requested(); }
-                        }
+                        padding: 16px;
+                        spacing: 8px;
+                        alignment: end;
 
                         Text {
                             text: Strings.batch-summary(Workspace.done-count, Workspace.files.length, Workspace.failed-count);
                             color: Workspace.failed-count > 0 ? Theme.error : Theme.text-2;
                             font-size: Theme.fs-small;
                             overflow: elide;
+                        }
+
+                        SButton {
+                            text: @tr("Add files...");
+                            enabled: !root.running;
+                            clicked => { Workspace.add-requested(); }
                         }
                     }
                 }

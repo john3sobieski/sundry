@@ -75,6 +75,27 @@ impl InputKind {
     }
 }
 
+/// What a tool's files are, so a frontend can offer a matching viewer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+pub enum Media {
+    /// No special viewer.
+    #[default]
+    None,
+    /// Raster images in, raster images out (previews, before/after view).
+    Image,
+}
+
+impl Media {
+    /// Stable key for the UI.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Media::None => "none",
+            Media::Image => "image",
+        }
+    }
+}
+
 /// Static description of a tool. `name` and `description` are English
 /// fallbacks; the UI localizes by `id` (keys like `tool.<id>.name`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,6 +105,10 @@ pub struct ToolInfo {
     pub description: String,
     pub category: Category,
     pub input: InputKind,
+    pub media: Media,
+    /// Every input file is processed on its own with the same parameters, so a
+    /// frontend may run files one by one or in parallel (batch mode).
+    pub per_file: bool,
 }
 
 impl ToolInfo {
@@ -99,12 +124,26 @@ impl ToolInfo {
             description: description.into(),
             category,
             input: InputKind::Any,
+            media: Media::None,
+            per_file: false,
         }
     }
 
     /// Declares what input the tool reads (default: `InputKind::Any`).
     pub fn with_input(mut self, input: InputKind) -> Self {
         self.input = input;
+        self
+    }
+
+    /// Declares the kind of files the tool works on (default: `Media::None`).
+    pub fn with_media(mut self, media: Media) -> Self {
+        self.media = media;
+        self
+    }
+
+    /// Marks the tool as independent per input file (see `ToolInfo::per_file`).
+    pub fn per_file(mut self) -> Self {
+        self.per_file = true;
         self
     }
 }
@@ -118,7 +157,9 @@ pub trait Tool: Send + Sync {
     }
 
     /// `params` are already validated and complete (see `Registry::run`).
-    /// Long work should call `job.check_cancelled()` and `job.set_progress()`.
+    /// Long work should call `job.check_cancelled()` and `job.set_progress()`;
+    /// a per-file tool leaves the progress alone when it gets a single item,
+    /// because a batch runner reports the progress of the whole batch.
     fn run(&self, input: &Input, params: &Params, job: &Job) -> Result<Output>;
 }
 
@@ -143,5 +184,15 @@ mod tests {
         assert_eq!(ToolInfo::new("a", Category::Dev, "A", "").input, InputKind::Any);
         let info = ToolInfo::new("a", Category::Dev, "A", "").with_input(InputKind::None);
         assert_eq!(info.input, InputKind::None);
+    }
+
+    #[test]
+    fn media_and_batch_flags_default_to_off() {
+        let info = ToolInfo::new("a", Category::Image, "A", "");
+        assert_eq!(info.media, Media::None);
+        assert!(!info.per_file);
+        let info = info.with_media(Media::Image).per_file();
+        assert_eq!(info.media.as_str(), "image");
+        assert!(info.per_file);
     }
 }

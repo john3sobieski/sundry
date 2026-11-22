@@ -64,10 +64,7 @@ impl Tool for DataSize {
     fn params(&self) -> Vec<ParamSpec> {
         let ids: Vec<&str> = UNITS.iter().map(|(id, _)| *id).collect();
         vec![
-            ParamSpec {
-                id: "value".to_owned(),
-                kind: ParamKind::Float { default: 1.0, min: Some(0.0), max: None },
-            },
+            ParamSpec::new("value", ParamKind::Float { default: 1.0, min: Some(0.0), max: None }),
             ParamSpec::choice("from", &ids, "MB"),
             ParamSpec::choice("to", &ids, "MiB"),
         ]

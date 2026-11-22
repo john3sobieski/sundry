@@ -5,6 +5,7 @@ use sundry_core::{Registry, Result};
 pub fn registry() -> Result<Registry> {
     let mut registry = Registry::new();
     sundry_tools_convert::register(&mut registry)?;
+    sundry_tools_image::register(&mut registry)?;
     Ok(registry)
 }
 

@@ -120,6 +120,14 @@ fn validate_definition(info: &ToolInfo, params: &[ParamSpec]) -> Result<()> {
             return Err(invalid(format!("duplicate parameter `{}`", spec.id)));
         }
         spec.validate().map_err(|e| invalid(e.to_string()))?;
+        for condition in &spec.shown_when {
+            if condition.param == spec.id || !params.iter().any(|p| p.id == condition.param) {
+                return Err(invalid(format!(
+                    "`{}` is shown depending on unknown parameter `{}`",
+                    spec.id, condition.param
+                )));
+            }
+        }
     }
     Ok(())
 }

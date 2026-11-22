@@ -16,11 +16,13 @@ export global Strings {
     // when it has a translation. `fallback` is the English text from the registry.
     pure public function tool-name(id: string, fallback: string) -> string {
         if (id == "convert.data") { return @tr("Data size"); }
+        if (id == "image.resize") { return @tr("Resize image"); }
         return fallback;
     }
 
     pure public function tool-description(id: string, fallback: string) -> string {
         if (id == "convert.data") { return @tr("Converts bits, bytes, SI units (kB = 1000 B) and IEC units (KiB = 1024 B)."); }
+        if (id == "image.resize") { return @tr("Changes the size or proportion of images, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         return fallback;
     }
 
@@ -28,6 +30,21 @@ export global Strings {
         if (tool == "convert.data" && param == "value") { return @tr("Value"); }
         if (tool == "convert.data" && param == "from") { return @tr("From"); }
         if (tool == "convert.data" && param == "to") { return @tr("To"); }
+        if (tool == "image.resize") {
+            if (param == "mode") { return @tr("Mode"); }
+            if (param == "width") { return @tr("Width, px"); }
+            if (param == "height") { return @tr("Height, px"); }
+            if (param == "ratio") { return @tr("Aspect ratio (like 16:9)"); }
+            if (param == "fit") { return @tr("Fit mode"); }
+            if (param == "background") { return @tr("Padding color"); }
+            if (param == "percent") { return @tr("Scale, %"); }
+            if (param == "long_side") { return @tr("Long side, px"); }
+            if (param == "short_side") { return @tr("Short side, px"); }
+            if (param == "no_upscale") { return @tr("Never enlarge"); }
+            if (param == "filter") { return @tr("Filter"); }
+            if (param == "format") { return @tr("Output format"); }
+            if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
+        }
         return fallback;
     }
 
@@ -47,6 +64,32 @@ export global Strings {
             if (option == "MiB") { return @tr("MiB"); }
             if (option == "GiB") { return @tr("GiB"); }
             if (option == "TiB") { return @tr("TiB"); }
+        }
+        if (tool == "image.resize") {
+            if (option == "size") { return @tr("Exact size (width x height)"); }
+            if (option == "percent") { return @tr("Percent"); }
+            if (option == "long_side") { return @tr("Long side"); }
+            if (option == "short_side") { return @tr("Short side"); }
+            if (option == "ratio") { return @tr("Aspect ratio and width"); }
+            if (option == "stretch") { return @tr("Stretch (distorts)"); }
+            if (option == "inside") { return @tr("Fit inside (keep proportions)"); }
+            if (option == "contain") { return @tr("Fit and pad"); }
+            if (option == "cover") { return @tr("Fill and crop"); }
+            if (option == "lanczos3") { return @tr("Lanczos3 (sharpest)"); }
+            if (option == "nearest") { return @tr("Nearest (pixel art)"); }
+            if (option == "keep") { return @tr("Keep original"); }
+            if (option == "png") { return "PNG"; }
+            if (option == "jpeg") { return "JPEG"; }
+            if (option == "webp") { return "WebP"; }
+            if (option == "avif") { return "AVIF"; }
+            if (option == "bmp") { return "BMP"; }
+            if (option == "gif") { return "GIF"; }
+            if (option == "tiff") { return "TIFF"; }
+            if (option == "ico") { return "ICO"; }
+            if (option == "catmull_rom") { return "Catmull-Rom"; }
+            if (option == "mitchell") { return "Mitchell"; }
+            if (option == "bilinear") { return "Bilinear"; }
+            if (option == "box") { return "Box"; }
         }
         return option;
     }
@@ -74,5 +117,42 @@ export global Strings {
         if (kind == "empty") { return @tr("(empty result)"); }
         if (kind == "binary") { return @tr("The result is binary data; saving files is not implemented yet."); }
         return text;
+    }
+
+    pure public function file-status(status: string) -> string {
+        if (status == "ok") { return @tr("Done"); }
+        if (status == "error") { return @tr("Error"); }
+        return "";
+    }
+
+    pure public function files-title(count: int) -> string {
+        return @tr("Files: {}", count);
+    }
+
+    pure public function batch-summary(done: int, total: int, failed: int) -> string {
+        if (total == 0) { return ""; }
+        if (failed > 0) { return @tr("Processed {} of {}, errors: {}", done, total, failed); }
+        return @tr("Processed {} of {}", done, total);
+    }
+
+    pure public function download-all(count: int) -> string {
+        return count > 0 ? @tr("Download all ({})", count) : @tr("Download all");
+    }
+
+    pure public function viewer-message(which: string, state: string, error: string) -> string {
+        if (state == "loading") { return @tr("Loading..."); }
+        if (state == "error") { return error; }
+        if (which == "input") { return @tr("Add images to see them here."); }
+        if (state == "waiting") { return @tr("Not processed yet. Press Run."); }
+        return @tr("The processed image appears here.");
+    }
+
+    // `arg` is a file name, a count or an error text, depending on `kind`.
+    pure public function note(kind: string, arg: string) -> string {
+        if (kind == "saved") { return @tr("Saved: {}", arg); }
+        if (kind == "saved-all") { return @tr("Archive saved, files: {}", arg); }
+        if (kind == "no-files") { return @tr("Add at least one image first."); }
+        if (kind == "error") { return @tr("Could not save: {}", arg); }
+        return "";
     }
 }

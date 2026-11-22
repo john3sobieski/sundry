@@ -14,6 +14,16 @@ pub enum Value {
 }
 
 impl Value {
+    /// Text form used to compare a value with the options of a `Visibility` condition.
+    fn condition_text(&self) -> String {
+        match self {
+            Value::Bool(v) => v.to_string(),
+            Value::Int(v) => v.to_string(),
+            Value::Float(v) => v.to_string(),
+            Value::Text(v) => v.clone(),
+        }
+    }
+
     fn type_name(&self) -> &'static str {
         match self {
             Value::Bool(_) => "bool",
@@ -82,46 +92,78 @@ impl ParamKind {
     }
 }
 
+/// "Show this parameter only while parameter `param` has one of these values."
+/// A hint for UIs; the tool still receives every parameter.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Visibility {
+    pub param: String,
+    pub one_of: Vec<String>,
+}
+
 /// Description of one tool parameter. Every parameter has a default.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParamSpec {
     pub id: String,
     pub kind: ParamKind,
+    /// All conditions must hold for the parameter to be shown (none = always shown).
+    pub shown_when: Vec<Visibility>,
 }
 
 impl ParamSpec {
+    pub fn new(id: impl Into<String>, kind: ParamKind) -> Self {
+        Self { id: id.into(), kind, shown_when: Vec::new() }
+    }
+
+    /// Shows the parameter only while `param` (a choice, bool or number) has one
+    /// of `values`, written as text. Can be chained: all conditions must hold.
+    pub fn show_when(mut self, param: &str, values: &[&str]) -> Self {
+        self.shown_when.push(Visibility {
+            param: param.to_owned(),
+            one_of: values.iter().map(|v| (*v).to_owned()).collect(),
+        });
+        self
+    }
+
+    /// Whether a UI should show this parameter; `current` returns the present
+    /// value of another parameter. A condition on an unknown value is not met.
+    pub fn is_shown(&self, current: impl Fn(&str) -> Option<Value>) -> bool {
+        self.shown_when.iter().all(|c| {
+            current(&c.param).is_some_and(|v| c.one_of.contains(&v.condition_text()))
+        })
+    }
+
     pub fn boolean(id: impl Into<String>, default: bool) -> Self {
-        Self { id: id.into(), kind: ParamKind::Bool { default } }
+        Self::new(id, ParamKind::Bool { default })
     }
 
     pub fn int(id: impl Into<String>, default: i64) -> Self {
-        Self { id: id.into(), kind: ParamKind::Int { default, min: None, max: None } }
+        Self::new(id, ParamKind::Int { default, min: None, max: None })
     }
 
     pub fn int_range(id: impl Into<String>, default: i64, min: i64, max: i64) -> Self {
-        Self { id: id.into(), kind: ParamKind::Int { default, min: Some(min), max: Some(max) } }
+        Self::new(id, ParamKind::Int { default, min: Some(min), max: Some(max) })
     }
 
     pub fn float(id: impl Into<String>, default: f64) -> Self {
-        Self { id: id.into(), kind: ParamKind::Float { default, min: None, max: None } }
+        Self::new(id, ParamKind::Float { default, min: None, max: None })
     }
 
     pub fn float_range(id: impl Into<String>, default: f64, min: f64, max: f64) -> Self {
-        Self { id: id.into(), kind: ParamKind::Float { default, min: Some(min), max: Some(max) } }
+        Self::new(id, ParamKind::Float { default, min: Some(min), max: Some(max) })
     }
 
     pub fn text(id: impl Into<String>, default: impl Into<String>) -> Self {
-        Self { id: id.into(), kind: ParamKind::Text { default: default.into() } }
+        Self::new(id, ParamKind::Text { default: default.into() })
     }
 
     pub fn choice(id: impl Into<String>, options: &[&str], default: &str) -> Self {
-        Self {
-            id: id.into(),
-            kind: ParamKind::Choice {
+        Self::new(
+            id,
+            ParamKind::Choice {
                 options: options.iter().map(|o| (*o).to_owned()).collect(),
                 default: default.to_owned(),
             },
-        }
+        )
     }
 
     pub fn default_value(&self) -> Value {
@@ -381,5 +423,23 @@ mod tests {
         assert!(ParamSpec::choice("a", &[], "").validate().is_err());
         assert!(ParamSpec::text("", "").validate().is_err());
         assert!(ParamSpec::float_range("a", 0.5, 0.0, 1.0).validate().is_ok());
+    }
+
+    #[test]
+    fn visibility_follows_other_parameters() {
+        let spec = ParamSpec::int("w", 1).show_when("mode", &["a", "b"]).show_when("on", &["true"]);
+        let with = |mode: &str, on: bool| {
+            spec.is_shown(|id| match id {
+                "mode" => Some(Value::from(mode)),
+                "on" => Some(Value::Bool(on)),
+                _ => None,
+            })
+        };
+        assert!(with("a", true));
+        assert!(with("b", true));
+        assert!(!with("c", true));
+        assert!(!with("a", false));
+        assert!(!spec.is_shown(|_| None));
+        assert!(ParamSpec::int("x", 1).is_shown(|_| None));
     }
 }

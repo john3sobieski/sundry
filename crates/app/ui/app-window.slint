@@ -3,12 +3,13 @@ import { Theme, ThemeMode } from "theme.slint";
 import { Strings } from "strings.slint";
 import { SField } from "components/field.slint";
 import { SSelect } from "components/select.slint";
-import { SSwitch } from "components/switch.slint";
+import { FormField, FormRow } from "form.slint";
+import { ImageWorkspace, Workspace, FileRow } from "workspace.slint";
 import { SProgress } from "components/progress.slint";
 
 import { SButton } from "components/button.slint";
 
-export { Theme, ThemeMode, Strings }
+export { Theme, ThemeMode, Strings, FormField, Workspace, FileRow }
 
 // Host-side handling of data dropped from other applications.
 export global DropApi {
@@ -28,86 +29,8 @@ export struct ToolItem {
     description: string,
     // What the tool reads: none | text | files | any.
     input: string,
-}
-
-// One generated parameter field. `kind` is bool | int | float | text | choice.
-export struct FormField {
-    id: string,
-    label: string,
-    kind: string,
-    text: string,
-    checked: bool,
-    index: int,
-    options: [string],
-    // Bounds as text, empty when unbounded (shown as a hint).
-    min: string,
-    max: string,
-    // Validation problem: a code understood by Strings.field-error, plus its argument.
-    error-code: string,
-    error-arg: string,
-}
-
-component FormRow inherits VerticalLayout {
-    in property <string> tool-id;
-    in property <FormField> field;
-    callback edited(string);
-    callback toggled(bool);
-    callback selected(int);
-
-    max-width: 440px;
-    spacing: 4px;
-
-    if root.field.kind != "bool": HorizontalLayout {
-        Text {
-            text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
-            color: Theme.text;
-            font-size: Theme.fs-base;
-            font-weight: 600;
-        }
-
-        Rectangle {
-            horizontal-stretch: 1;
-        }
-
-        Text {
-            text: Strings.range-hint(root.field.min, root.field.max);
-            color: Theme.text-3;
-            font-family: Theme.mono;
-            font-size: Theme.fs-small;
-        }
-    }
-
-    if root.field.kind == "bool": SSwitch {
-        text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
-        checked: root.field.checked;
-        toggled(value) => { root.toggled(value); }
-    }
-
-    if root.field.kind == "int" || root.field.kind == "float": SField {
-        mono: true;
-        text: root.field.text;
-        edited(value) => { root.edited(value); }
-    }
-
-    if root.field.kind == "text": SField {
-        text: root.field.text;
-        edited(value) => { root.edited(value); }
-    }
-
-    if root.field.kind == "choice": SSelect {
-        model: root.field.options;
-        current-index: root.field.index;
-        custom-labels: true;
-        display(option) => { return Strings.option-label(root.tool-id, root.field.id, option); }
-        selected(index) => { root.selected(index); }
-    }
-
-    if root.field.error-code != "": Text {
-        text: Strings.field-error(root.field.error-code, root.field.error-arg);
-        color: Theme.error;
-        font-size: Theme.fs-small;
-        wrap: word-wrap;
-    }
+    // Kind of files the tool works on: none | image (image tools get the workspace view).
+    media: string,
 }
 
 component NavItem inherits Rectangle {
@@ -226,7 +149,9 @@ export component AppWindow inherits Window {
     in property <[FormField]> form;
     in property <bool> form-valid: true;
     in-out property <string> input-text: "";
-    in property <[string]> input-files;
+    in property <[FileRow]> input-files;
+    // Image tools replace the three-column layout with a full-width workspace.
+    out property <bool> workspace: root.has-current-tool && root.current-tool.media == "image";
     in property <bool> running: false;
     in property <float> progress: 0;
     // kind: "" (none) | text | error | cancelled | empty | binary
@@ -263,7 +188,7 @@ export component AppWindow inherits Window {
                 vertical-stretch: 1;
 
                 // Categories
-                Rectangle {
+                if !root.workspace: Rectangle {
                     width: 200px;
                     background: Theme.surface;
 
@@ -293,14 +218,14 @@ export component AppWindow inherits Window {
                     }
                 }
 
-                Rectangle {
+                if !root.workspace: Rectangle {
                     width: 1px;
                     background: Theme.divider;
                 }
 
                 // Search, tool list and details
                 VerticalLayout {
-                    Rectangle {
+                    if !root.workspace: Rectangle {
                         height: 56px;
 
                         search := SField {
@@ -314,7 +239,7 @@ export component AppWindow inherits Window {
                         }
                     }
 
-                    Rectangle {
+                    if !root.workspace: Rectangle {
                         height: 1px;
                         background: Theme.divider;
                     }
@@ -322,7 +247,7 @@ export component AppWindow inherits Window {
                     HorizontalLayout {
                         vertical-stretch: 1;
 
-                        Rectangle {
+                        if !root.workspace: Rectangle {
                             width: 320px;
 
                             if root.tools.length == 0: Text {
@@ -351,7 +276,7 @@ export component AppWindow inherits Window {
                             }
                         }
 
-                        Rectangle {
+                        if !root.workspace: Rectangle {
                             width: 1px;
                             background: Theme.divider;
                         }
@@ -461,7 +386,7 @@ export component AppWindow inherits Window {
                                                 spacing: 8px;
 
                                                 Text {
-                                                    text: file;
+                                                    text: file.name;
                                                     color: Theme.text-2;
                                                     font-family: Theme.mono;
                                                     font-size: Theme.fs-small;
@@ -523,6 +448,23 @@ export component AppWindow inherits Window {
 
                                 if !root.has-current-tool: Rectangle {
                                     vertical-stretch: 1;
+                                }
+                            }
+
+                            if root.workspace: ImageWorkspace {
+                                width: parent.width;
+                                height: parent.height;
+                                tool-id: root.current-tool.id;
+                                tool-title: Strings.tool-name(root.current-tool.id, root.current-tool.name);
+                                form: root.form;
+                                form-valid: root.form-valid;
+                                running: root.running;
+                                field-edited(i, value) => { root.field-edited(i, value); }
+                                field-toggled(i, value) => { root.field-toggled(i, value); }
+                                field-selected(i, choice) => { root.field-selected(i, choice); }
+                                run-requested => { root.run-requested(); }
+                                leave-requested => {
+                                    root.has-current-tool = false;
                                 }
                             }
 

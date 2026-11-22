@@ -1,0 +1,16 @@
+[package]
+name = "sundry-archive"
+description = "Packs files into ZIP or 7z archives for Sundry"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+zip.workspace = true
+sevenz-rust2.workspace = true
+
+[lints]
+workspace = true

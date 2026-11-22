@@ -1,0 +1,210 @@
+import { Theme } from "../theme.slint";
+import { SButton } from "button.slint";
+
+// Image with zoom and pan. `zoom` is relative to "fit" (1 = whole image visible);
+// (`cx`, `cy`) is the image point at the center of the view, 0..1, so two viewers
+// with differently sized images can share one view.
+export component ImageViewer inherits Rectangle {
+    in property <string> title;
+    in property <image> source;
+    in property <bool> loaded: false;
+    in property <string> info;
+    in property <string> message;
+    in property <string> message-kind;
+    in-out property <float> zoom: 1;
+    in-out property <float> cx: 0.5;
+    in-out property <float> cy: 0.5;
+    // Fired only by the user's own zoom or pan.
+    callback view-changed();
+
+    property <length> vw: view.width;
+    property <length> vh: view.height;
+    property <float> aspect: root.source.height > 0 ? root.source.width / root.source.height : 1;
+    property <length> base-w: Math.min(vw, vh * aspect);
+    property <length> dw: base-w * root.zoom;
+    property <length> dh: dw / aspect;
+    property <length> img-x: clamp-axis(vw / 2 - root.cx * dw, dw, vw);
+    property <length> img-y: clamp-axis(vh / 2 - root.cy * dh, dh, vh);
+    property <length> start-x;
+    property <length> start-y;
+
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.divider;
+    min-height: 120px;
+
+    // The image may not leave the view; a smaller image is centered.
+    pure function clamp-axis(offset: length, size: length, view-size: length) -> length {
+        return size <= view-size ? (view-size - size) / 2 : Math.clamp(offset, view-size - size, 0px);
+    }
+
+    function pan-to(x: length, y: length) {
+        root.cx = (vw / 2 - clamp-axis(x, dw, vw)) / dw;
+        root.cy = (vh / 2 - clamp-axis(y, dh, vh)) / dh;
+        root.view-changed();
+    }
+
+    function zoom-at(mx: length, my: length, factor: float) {
+        if (!root.loaded || dw <= 0px) {
+            return;
+        }
+        let u = (mx - img-x) / dw;
+        let v = (my - img-y) / dh;
+        root.zoom = Math.clamp(root.zoom * factor, 0.05, 64);
+        root.pan-to(mx - u * dw, my - v * dh);
+    }
+
+    function fit() {
+        root.zoom = 1;
+        root.cx = 0.5;
+        root.cy = 0.5;
+        root.view-changed();
+    }
+
+    function actual-size() {
+        if (!root.loaded || base-w <= 0px) {
+            return;
+        }
+        root.zoom = root.source.width * 1px / base-w;
+        root.cx = 0.5;
+        root.cy = 0.5;
+        root.view-changed();
+    }
+
+    VerticalLayout {
+        Rectangle {
+            height: 34px;
+
+            HorizontalLayout {
+                padding-left: 10px;
+                padding-right: 6px;
+                padding-top: 5px;
+                padding-bottom: 5px;
+                spacing: 6px;
+
+                Text {
+                    text: root.title;
+                    color: Theme.text;
+                    font-size: Theme.fs-base;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    horizontal-stretch: 1;
+                    text: root.info;
+                    color: Theme.text-2;
+                    font-family: Theme.mono;
+                    font-size: Theme.fs-small;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                Text {
+                    width: 44px;
+                    text: root.loaded ? Math.round(dw / (root.source.width * 1px) * 100) + "%" : "";
+                    color: Theme.text-2;
+                    font-family: Theme.mono;
+                    font-size: Theme.fs-small;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                }
+
+                SButton {
+                    width: 28px;
+                    min-width: 28px;
+                    min-height: 24px;
+                    max-height: 24px;
+                    text: "\u{2212}";
+                    enabled: root.loaded;
+                    clicked => { root.zoom-at(vw / 2, vh / 2, 0.8); }
+                }
+
+                SButton {
+                    width: 28px;
+                    min-width: 28px;
+                    min-height: 24px;
+                    max-height: 24px;
+                    text: "+";
+                    enabled: root.loaded;
+                    clicked => { root.zoom-at(vw / 2, vh / 2, 1.25); }
+                }
+
+                SButton {
+                    width: 64px;
+                    min-width: 64px;
+                    min-height: 24px;
+                    max-height: 24px;
+                    text: @tr("Fit");
+                    enabled: root.loaded;
+                    clicked => { root.fit(); }
+                }
+
+                SButton {
+                    width: 40px;
+                    min-width: 40px;
+                    min-height: 24px;
+                    max-height: 24px;
+                    text: "1:1";
+                    enabled: root.loaded;
+                    clicked => { root.actual-size(); }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.divider;
+        }
+
+        view := Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            if root.loaded: Image {
+                source: root.source;
+                x: img-x;
+                y: img-y;
+                width: dw;
+                height: dh;
+                image-rendering: dw > root.source.width * 2px ? ImageRendering.pixelated : ImageRendering.smooth;
+            }
+
+            if !root.loaded: Text {
+                x: 16px;
+                width: parent.width - 32px;
+                height: parent.height;
+                text: root.message;
+                color: root.message-kind == "error" ? Theme.error : Theme.text-3;
+                font-size: Theme.fs-base;
+                wrap: word-wrap;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            TouchArea {
+                mouse-cursor: root.loaded ? (self.pressed ? MouseCursor.grabbing : MouseCursor.grab) : MouseCursor.default;
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                        root.start-x = img-x;
+                        root.start-y = img-y;
+                    }
+                }
+                moved => {
+                    if (root.loaded) {
+                        root.pan-to(root.start-x + (self.mouse-x - self.pressed-x),
+                            root.start-y + (self.mouse-y - self.pressed-y));
+                    }
+                }
+                scroll-event(event) => {
+                    if (root.loaded) {
+                        root.zoom-at(self.mouse-x, self.mouse-y, Math.pow(1.0015, event.delta-y / 1px));
+                        return accept;
+                    }
+                    return reject;
+                }
+                double-clicked => { root.fit(); }
+            }
+        }
+    }
+}

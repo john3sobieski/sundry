@@ -15,6 +15,7 @@ path = "src/main.rs"
 [dependencies]
 sundry-core.workspace = true
 sundry-tools-convert.workspace = true
+sundry-tools-image.workspace = true
 thiserror.workspace = true
 
 [lints]

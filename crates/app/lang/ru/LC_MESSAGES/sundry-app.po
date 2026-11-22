@@ -171,3 +171,156 @@ msgstr "ГиБ"
 
 msgid "TiB"
 msgstr "ТиБ"
+
+msgid "Resize image"
+msgstr "Изменение размера"
+
+msgid "Changes the size or proportion of images, one file or a whole batch. Metadata is dropped and animations keep only their first frame."
+msgstr "Меняет размер или пропорции изображений: одного файла или целой пачки. Метаданные удаляются, у анимации остаётся только первый кадр."
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Width, px"
+msgstr "Ширина, px"
+
+msgid "Height, px"
+msgstr "Высота, px"
+
+msgid "Aspect ratio (like 16:9)"
+msgstr "Соотношение сторон (например 16:9)"
+
+msgid "Fit"
+msgstr "По окну"
+
+msgid "Fit mode"
+msgstr "Способ вписывания"
+
+msgid "Padding color"
+msgstr "Цвет полей"
+
+msgid "Scale, %"
+msgstr "Масштаб, %"
+
+msgid "Long side, px"
+msgstr "Длинная сторона, px"
+
+msgid "Short side, px"
+msgstr "Короткая сторона, px"
+
+msgid "Never enlarge"
+msgstr "Не увеличивать"
+
+msgid "Filter"
+msgstr "Фильтр"
+
+msgid "Output format"
+msgstr "Формат результата"
+
+msgid "Quality (JPEG, AVIF)"
+msgstr "Качество (JPEG, AVIF)"
+
+msgid "Exact size (width x height)"
+msgstr "Точный размер (ширина × высота)"
+
+msgid "Percent"
+msgstr "Проценты"
+
+msgid "Long side"
+msgstr "Длинная сторона"
+
+msgid "Short side"
+msgstr "Короткая сторона"
+
+msgid "Aspect ratio and width"
+msgstr "Соотношение сторон и ширина"
+
+msgid "Stretch (distorts)"
+msgstr "Растянуть (искажает)"
+
+msgid "Fit inside (keep proportions)"
+msgstr "Вписать (пропорции сохраняются)"
+
+msgid "Fit and pad"
+msgstr "Вписать с полями"
+
+msgid "Fill and crop"
+msgstr "Заполнить с обрезкой"
+
+msgid "Lanczos3 (sharpest)"
+msgstr "Lanczos3 (самый чёткий)"
+
+msgid "Nearest (pixel art)"
+msgstr "Nearest (пиксель-арт)"
+
+msgid "Keep original"
+msgstr "Как у исходного"
+
+msgid "Done"
+msgstr "Готово"
+
+msgid "Error"
+msgstr "Ошибка"
+
+msgid "Files: {}"
+msgstr "Файлы: {}"
+
+msgid "Processed {} of {}, errors: {}"
+msgstr "Обработано {} из {}, ошибок: {}"
+
+msgid "Processed {} of {}"
+msgstr "Обработано {} из {}"
+
+msgid "Download all ({})"
+msgstr "Скачать всё ({})"
+
+msgid "Download all"
+msgstr "Скачать всё"
+
+msgid "Loading..."
+msgstr "Загрузка..."
+
+msgid "Add images to see them here."
+msgstr "Добавьте изображения, чтобы увидеть их здесь."
+
+msgid "Not processed yet. Press Run."
+msgstr "Ещё не обработано. Нажмите «Запустить»."
+
+msgid "The processed image appears here."
+msgstr "Здесь появится обработанное изображение."
+
+msgid "Saved: {}"
+msgstr "Сохранено: {}"
+
+msgid "Archive saved, files: {}"
+msgstr "Архив сохранён, файлов: {}"
+
+msgid "Add at least one image first."
+msgstr "Сначала добавьте хотя бы одно изображение."
+
+msgid "Could not save: {}"
+msgstr "Не удалось сохранить: {}"
+
+msgid "Tools"
+msgstr "Тулы"
+
+msgid "Clear"
+msgstr "Очистить"
+
+msgid "Drop images here, or add them with the button below."
+msgstr "Перетащите изображения сюда или добавьте кнопкой ниже."
+
+msgid "Add files..."
+msgstr "Добавить файлы..."
+
+msgid "Link zoom and position"
+msgstr "Связать масштаб и положение"
+
+msgid "Output"
+msgstr "Результат"
+
+msgid "Download image"
+msgstr "Скачать изображение"
+
+msgid "Packing the archive..."
+msgstr "Упаковка архива..."

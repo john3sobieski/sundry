@@ -10,9 +10,13 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use sundry_core::{
-    Category, Error, Input, InputKind, Item, Job, Language, ParamKind, ParamSpec, Params, Registry,
-    Settings, Tool, Value, logging, params, settings,
+    Category, Error, Input, InputKind, Item, Job, Language, Media, ParamKind, ParamSpec, Params,
+    Registry, Settings, Tool, Value, logging, params, settings,
 };
+
+mod session;
+
+use session::Session;
 
 slint::include_modules!();
 
@@ -22,11 +26,22 @@ struct Form {
     tool_id: String,
     specs: Vec<ParamSpec>,
     values: Vec<Option<Value>>,
+    /// Which fields are shown; a hidden field may hold a bad value without blocking Run.
+    shown: Vec<bool>,
 }
 
 impl Form {
     fn is_valid(&self) -> bool {
-        self.values.iter().all(Option::is_some)
+        self.values.iter().zip(&self.shown).all(|(value, shown)| value.is_some() || !shown)
+    }
+
+    fn value_of(&self, id: &str) -> Option<Value> {
+        let index = self.specs.iter().position(|s| s.id == id)?;
+        self.values[index].clone()
+    }
+
+    fn visibility(&self) -> Vec<bool> {
+        self.specs.iter().map(|spec| spec.is_shown(|id| self.value_of(id))).collect()
     }
 
     fn params(&self) -> Params {
@@ -74,8 +89,7 @@ struct Shell {
     tools: Rc<VecModel<ToolItem>>,
     fields: Rc<VecModel<FormField>>,
     form: RefCell<Form>,
-    files: RefCell<Vec<PathBuf>>,
-    file_names: Rc<VecModel<SharedString>>,
+    session: Rc<Session>,
     job: RefCell<Option<Job>>,
 }
 
@@ -100,6 +114,7 @@ impl Shell {
                     name: info.name.as_str().into(),
                     description: info.description.as_str().into(),
                     input: info.input.as_str().into(),
+                    media: info.media.as_str().into(),
                 }
             })
             .collect();
@@ -107,7 +122,7 @@ impl Shell {
     }
 
     /// Builds the parameter form of a tool from its specs.
-    fn open_tool(&self, id: &str) {
+    fn open_tool(&self, ui: &AppWindow, id: &str) {
         let entry = match self.registry.get(id) {
             Ok(entry) => entry,
             Err(err) => {
@@ -116,12 +131,30 @@ impl Shell {
             }
         };
         if !entry.info().input.accepts_files() {
-            self.clear_files();
+            self.session.clear(ui);
         }
         let specs = entry.params().to_vec();
         let values = specs.iter().map(|s| Some(s.default_value())).collect();
         self.fields.set_vec(specs.iter().map(field_of).collect::<Vec<_>>());
-        *self.form.borrow_mut() = Form { tool_id: id.to_owned(), specs, values };
+        *self.form.borrow_mut() = Form { tool_id: id.to_owned(), specs, values, shown: Vec::new() };
+        self.refresh_visibility();
+    }
+
+    /// Shows or hides fields that depend on other fields (see `ParamSpec::show_when`).
+    fn refresh_visibility(&self) {
+        let shown = {
+            let mut form = self.form.borrow_mut();
+            form.shown = form.visibility();
+            form.shown.clone()
+        };
+        for (index, visible) in shown.into_iter().enumerate() {
+            if let Some(mut row) = self.fields.row_data(index)
+                && row.visible != visible
+            {
+                row.visible = visible;
+                self.fields.set_row_data(index, row);
+            }
+        }
     }
 
     /// Validates one edited field and shows the problem (if any) under it.
@@ -148,6 +181,8 @@ impl Shell {
             self.fields.set_row_data(index, row);
         }
         tracing::debug!(tool = form.tool_id.as_str(), params = ?form.params(), "form updated");
+        drop(form);
+        self.refresh_visibility();
     }
 
     fn form_valid(&self) -> bool {
@@ -160,30 +195,17 @@ impl Shell {
         self.registry.get(&form.tool_id).map(|e| e.info().input).unwrap_or_default()
     }
 
-    fn add_files(&self, paths: Vec<PathBuf>) {
+    /// The kind of files the open tool works on.
+    fn media(&self) -> Media {
+        let form = self.form.borrow();
+        self.registry.get(&form.tool_id).map(|e| e.info().media).unwrap_or_default()
+    }
+
+    fn add_files(&self, ui: &AppWindow, paths: Vec<PathBuf>) {
         if !self.input_kind().accepts_files() {
             return;
         }
-        let mut files = self.files.borrow_mut();
-        for path in paths.into_iter().filter(|p| p.is_file()) {
-            if !files.contains(&path) {
-                self.file_names.push(display_name(&path).into());
-                files.push(path);
-            }
-        }
-    }
-
-    fn remove_file(&self, index: usize) {
-        let mut files = self.files.borrow_mut();
-        if index < files.len() {
-            files.remove(index);
-            self.file_names.remove(index);
-        }
-    }
-
-    fn clear_files(&self) {
-        self.files.borrow_mut().clear();
-        self.file_names.set_vec(Vec::<SharedString>::new());
+        self.session.add(ui, paths, self.media() == Media::Image);
     }
 
     /// Validates the form and starts the tool on a background thread.
@@ -193,10 +215,10 @@ impl Shell {
             self.registry.get(&form.tool_id).map_err(|e| e.to_string()).and_then(|entry| {
                 let resolved =
                     params::resolve(&form.specs, &form.params()).map_err(|e| e.to_string())?;
-                Ok((entry.tool(), resolved))
+                Ok((entry.tool(), resolved, entry.info().per_file))
             })
         };
-        let (tool, resolved) = match prepared {
+        let (tool, resolved, per_file) = match prepared {
             Ok(prepared) => prepared,
             Err(message) => {
                 ui.set_result_kind("error".into());
@@ -208,6 +230,15 @@ impl Shell {
         let job = Job::new();
         *self.job.borrow_mut() = Some(job.clone());
         ui.set_progress(0.0);
+        if per_file {
+            if !self.session.has_files() {
+                ui.global::<Workspace>().set_note_kind("no-files".into());
+                return;
+            }
+            ui.set_running(true);
+            self.session.start(ui, tool, resolved, job);
+            return;
+        }
         ui.set_result_text("".into());
         ui.set_result_kind("".into());
         ui.set_running(true);
@@ -216,7 +247,7 @@ impl Shell {
         let kind = self.input_kind();
         let text =
             if kind.accepts_text() { ui.get_input_text().to_string() } else { String::new() };
-        let files = if kind.accepts_files() { self.files.borrow().clone() } else { Vec::new() };
+        let files = if kind.accepts_files() { self.session.paths() } else { Vec::new() };
         let weak = ui.as_weak();
         std::thread::spawn(move || {
             let outcome = run_blocking(&*tool, &resolved, &text, &files, &job);
@@ -315,6 +346,7 @@ fn field_of(spec: &ParamSpec) -> FormField {
     let mut field = FormField {
         id: spec.id.as_str().into(),
         label: label_of(&spec.id).into(),
+        visible: true,
         ..Default::default()
     };
     match &spec.kind {
@@ -460,6 +492,24 @@ fn load_settings() -> Settings {
     })
 }
 
+/// Opens the file picker; image tools only offer image files.
+fn request_files(shell: &Rc<Shell>, weak: slint::Weak<AppWindow>) {
+    let shell = Rc::clone(shell);
+    // The dialog runs on the event loop without blocking it; the handle is
+    // dropped on purpose, which detaches the task.
+    let _ = slint::spawn_local(async move {
+        let mut dialog = rfd::AsyncFileDialog::new();
+        if shell.media() == Media::Image {
+            dialog = dialog.add_filter("Images", sundry_tools_image::codec::INPUT_EXTENSIONS);
+        }
+        if let Some(files) = dialog.pick_files().await
+            && let Some(ui) = weak.upgrade()
+        {
+            shell.add_files(&ui, files.iter().map(|f| f.path().to_path_buf()).collect());
+        }
+    });
+}
+
 /// Connects dropped files, run and cancel to the shell.
 fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
     let api = ui.global::<DropApi>();
@@ -468,34 +518,63 @@ fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
         move |data| shell.input_kind().accepts_files() && !paths_of(&data).is_empty()
     });
     api.on_dropped({
-        let shell = Rc::clone(shell);
-        move |data| shell.add_files(paths_of(&data))
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move |data| {
+            if let Some(ui) = weak.upgrade() {
+                shell.add_files(&ui, paths_of(&data));
+            }
+        }
     });
 
     ui.on_file_removed({
-        let shell = Rc::clone(shell);
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
         move |i| {
-            if let Some(i) = index_of(i) {
-                shell.remove_file(i);
+            if let (Some(i), Some(ui)) = (index_of(i), weak.upgrade()) {
+                shell.session.remove(&ui, i);
             }
         }
     });
     ui.on_files_requested({
-        let shell = Rc::clone(shell);
-        move || {
-            let shell = Rc::clone(&shell);
-            // The dialog runs on the event loop without blocking it; the handle is
-            // dropped on purpose, which detaches the task.
-            let _ = slint::spawn_local(async move {
-                if let Some(files) = rfd::AsyncFileDialog::new().pick_files().await {
-                    shell.add_files(files.iter().map(|f| f.path().to_path_buf()).collect());
-                }
-            });
-        }
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move || request_files(&shell, weak.clone())
     });
     ui.on_files_cleared({
-        let shell = Rc::clone(shell);
-        move || shell.clear_files()
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                shell.session.clear(&ui);
+            }
+        }
+    });
+
+    let workspace = ui.global::<Workspace>();
+    workspace.on_file_selected({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move |i| {
+            if let (Some(i), Some(ui)) = (index_of(i), weak.upgrade()) {
+                shell.session.select(&ui, i);
+            }
+        }
+    });
+    workspace.on_add_requested({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move || request_files(&shell, weak.clone())
+    });
+    workspace.on_clear_requested({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                shell.session.clear(&ui);
+            }
+        }
+    });
+    workspace.on_save_one({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move || shell.session.save_selected(weak.clone())
+    });
+    workspace.on_save_all({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move |format| shell.session.save_all(weak.clone(), format)
     });
 
     ui.on_run_requested({
@@ -518,8 +597,8 @@ fn bind_form(ui: &AppWindow, shell: &Rc<Shell>) {
     ui.on_tool_selected({
         let (shell, weak) = (Rc::clone(shell), weak.clone());
         move |tool| {
-            shell.open_tool(tool.id.as_str());
             if let Some(ui) = weak.upgrade() {
+                shell.open_tool(&ui, tool.id.as_str());
                 ui.set_form_valid(shell.form_valid());
             }
         }
@@ -574,8 +653,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         tools: Rc::new(VecModel::default()),
         fields: Rc::new(VecModel::default()),
         form: RefCell::new(Form::default()),
-        files: RefCell::new(Vec::new()),
-        file_names: Rc::new(VecModel::default()),
+        session: Rc::new(Session::default()),
         job: RefCell::new(None),
     });
     shell.refresh("", "");
@@ -584,7 +662,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ui.set_categories(ModelRc::from(shell.categories.clone()));
     ui.set_tools(ModelRc::from(shell.tools.clone()));
     ui.set_form(ModelRc::from(shell.fields.clone()));
-    ui.set_input_files(ModelRc::from(shell.file_names.clone()));
+    ui.set_input_files(ModelRc::from(shell.session.rows()));
+    ui.global::<Workspace>().set_files(ModelRc::from(shell.session.rows()));
     ui.set_tool_total(count(shell.registry.len()));
 
     apply_language(config.language);
@@ -613,8 +692,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     timer.start(slint::TimerMode::Repeated, Duration::from_millis(50), {
         let (shell, weak) = (Rc::clone(&shell), ui.as_weak());
         move || {
-            if let Some(ui) = weak.upgrade()
-                && ui.get_running()
+            let Some(ui) = weak.upgrade() else { return };
+            shell.session.poll(&ui);
+            if ui.get_running()
                 && let Some(job) = shell.job.borrow().as_ref()
             {
                 ui.set_progress(job.progress());

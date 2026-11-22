@@ -1,0 +1,22 @@
+[package]
+name = "sundry-tools-image"
+description = "Image tools for Sundry: resize and, later, convert, compress, crop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[features]
+default = ["avif"]
+# AVIF encoding (rav1e): a big dependency tree. AVIF decoding needs a C library and is not included.
+avif = ["image/avif"]
+
+[dependencies]
+sundry-core.workspace = true
+fast_image_resize.workspace = true
+image.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,91 @@
+import { Theme } from "theme.slint";
+import { Strings } from "strings.slint";
+import { SField } from "components/field.slint";
+import { SSelect } from "components/select.slint";
+import { SSwitch } from "components/switch.slint";
+
+// One generated parameter field. `kind` is bool | int | float | text | choice.
+export struct FormField {
+    id: string,
+    label: string,
+    kind: string,
+    text: string,
+    checked: bool,
+    index: int,
+    options: [string],
+    // Bounds as text, empty when unbounded (shown as a hint).
+    min: string,
+    max: string,
+    // Validation problem: a code understood by Strings.field-error, plus its argument.
+    error-code: string,
+    error-arg: string,
+    // Hidden while another parameter has a value that makes this one irrelevant.
+    visible: bool,
+}
+
+export component FormRow inherits VerticalLayout {
+    in property <string> tool-id;
+    in property <FormField> field;
+    callback edited(string);
+    callback toggled(bool);
+    callback selected(int);
+
+    max-width: 440px;
+    spacing: 4px;
+    // A hidden row takes no room (rows carry their own bottom padding).
+    visible: root.field.visible;
+    max-height: root.field.visible ? 1000px : 0px;
+    padding-bottom: root.field.visible ? 12px : 0px;
+
+    if root.field.kind != "bool": HorizontalLayout {
+        Text {
+            text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
+            color: Theme.text;
+            font-size: Theme.fs-base;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        Text {
+            text: Strings.range-hint(root.field.min, root.field.max);
+            color: Theme.text-3;
+            font-family: Theme.mono;
+            font-size: Theme.fs-small;
+        }
+    }
+
+    if root.field.kind == "bool": SSwitch {
+        text: Strings.param-label(root.tool-id, root.field.id, root.field.label);
+        checked: root.field.checked;
+        toggled(value) => { root.toggled(value); }
+    }
+
+    if root.field.kind == "int" || root.field.kind == "float": SField {
+        mono: true;
+        text: root.field.text;
+        edited(value) => { root.edited(value); }
+    }
+
+    if root.field.kind == "text": SField {
+        text: root.field.text;
+        edited(value) => { root.edited(value); }
+    }
+
+    if root.field.kind == "choice": SSelect {
+        model: root.field.options;
+        current-index: root.field.index;
+        custom-labels: true;
+        display(option) => { return Strings.option-label(root.tool-id, root.field.id, option); }
+        selected(index) => { root.selected(index); }
+    }
+
+    if root.field.error-code != "": Text {
+        text: Strings.field-error(root.field.error-code, root.field.error-arg);
+        color: Theme.error;
+        font-size: Theme.fs-small;
+        wrap: word-wrap;
+    }
+}

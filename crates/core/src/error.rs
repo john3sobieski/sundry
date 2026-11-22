@@ -15,6 +15,10 @@ pub enum Error {
     InvalidParam { name: String, reason: String },
     #[error("invalid input: {0}")]
     InvalidInput(String),
+    #[error("unsupported: {0}")]
+    Unsupported(String),
+    #[error("{0}")]
+    Processing(String),
     #[error("operation cancelled")]
     Cancelled,
     #[error("no configuration directory found")]

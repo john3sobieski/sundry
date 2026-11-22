@@ -1,0 +1,411 @@
+import { ListView, ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Strings } from "strings.slint";
+import { SButton } from "components/button.slint";
+import { SSelect } from "components/select.slint";
+import { SSwitch } from "components/switch.slint";
+import { ImageViewer } from "components/viewer.slint";
+import { FormField, FormRow } from "form.slint";
+
+// One input file in the batch list. `status` is pending | ok | error; `detail`
+// is the result (size, weight) for ok and the reason for error.
+export struct FileRow {
+    name: string,
+    size: string,
+    status: string,
+    detail: string,
+}
+
+// State shared between the image workspace and the Rust side.
+export global Workspace {
+    in property <[FileRow]> files;
+    in-out property <int> selected: -1;
+
+    in property <image> input-image;
+    in property <bool> input-loaded: false;
+    in property <string> input-info;
+    // "" (no file) | loading | ready | error
+    in property <string> input-state;
+    in property <string> input-error;
+
+    in property <image> output-image;
+    in property <bool> output-loaded: false;
+    in property <string> output-info;
+    // "" (no file) | waiting (not processed yet) | loading | ready | error
+    in property <string> output-state;
+    in property <string> output-error;
+
+    in-out property <float> in-zoom: 1;
+    in-out property <float> in-cx: 0.5;
+    in-out property <float> in-cy: 0.5;
+    in-out property <float> out-zoom: 1;
+    in-out property <float> out-cx: 0.5;
+    in-out property <float> out-cy: 0.5;
+    in-out property <bool> link-views: true;
+
+    in property <int> done-count;
+    in property <int> failed-count;
+    in property <int> result-count;
+    in property <bool> selected-has-result: false;
+    // Outcome of the last save: saved | saved-all | no-files | error, plus its argument.
+    in property <string> note-kind;
+    in property <string> note-arg;
+    in property <bool> archiving: false;
+    in-out property <int> archive-index: 0;
+
+    callback file-selected(int);
+    callback add-requested();
+    callback clear-requested();
+    callback save-one();
+    callback save-all(int);
+}
+
+component FileItem inherits Rectangle {
+    in property <FileRow> row;
+    in property <bool> selected;
+    callback clicked();
+
+    height: 46px;
+    background: area.has-hover ? Theme.raised : transparent;
+    animate background { duration: Theme.anim; easing: ease-out; }
+
+    Rectangle {
+        x: 0;
+        width: 3px;
+        background: Theme.text;
+        visible: root.selected;
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        padding-left: 14px;
+        padding-right: 8px;
+        alignment: center;
+        spacing: 2px;
+
+        HorizontalLayout {
+            spacing: 6px;
+
+            Text {
+                horizontal-stretch: 1;
+                text: root.row.name;
+                color: Theme.text;
+                font-size: Theme.fs-base;
+                font-weight: root.selected ? 600 : 400;
+                overflow: elide;
+            }
+
+            Text {
+                text: Strings.file-status(root.row.status);
+                color: root.row.status == "ok" ? Theme.success : Theme.error;
+                font-size: Theme.fs-small;
+            }
+        }
+
+        Text {
+            text: root.row.status == "pending" ? root.row.size : root.row.detail;
+            color: root.row.status == "error" ? Theme.error : Theme.text-2;
+            font-family: Theme.mono;
+            font-size: Theme.fs-small;
+            overflow: elide;
+        }
+    }
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.divider;
+    }
+}
+
+export component ImageWorkspace inherits Rectangle {
+    in property <string> tool-id;
+    in property <string> tool-title;
+    in property <[FormField]> form;
+    in property <bool> form-valid: true;
+    in property <bool> running: false;
+    callback field-edited(int, string);
+    callback field-toggled(int, bool);
+    callback field-selected(int, int);
+    callback run-requested();
+    callback leave-requested();
+
+    background: Theme.bg;
+
+    HorizontalLayout {
+        // Settings
+        Rectangle {
+            width: 280px;
+            background: Theme.surface;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    Text {
+                        horizontal-stretch: 1;
+                        text: root.tool-title;
+                        color: Theme.text;
+                        font-size: Theme.fs-medium;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    SButton {
+                        width: 64px;
+                        min-width: 64px;
+                        min-height: 26px;
+                        max-height: 26px;
+                        text: @tr("Tools");
+                        clicked => { root.leave-requested(); }
+                    }
+                }
+
+                ScrollView {
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding-top: 4px;
+                        alignment: start;
+
+                        for item[index] in root.form: FormRow {
+                            tool-id: root.tool-id;
+                            field: item;
+                            edited(value) => { root.field-edited(index, value); }
+                            toggled(value) => { root.field-toggled(index, value); }
+                            selected(choice) => { root.field-selected(index, choice); }
+                        }
+                    }
+                }
+
+                SButton {
+                    text: @tr("Run");
+                    primary: true;
+                    enabled: root.form-valid && !root.running && Workspace.files.length > 0;
+                    clicked => { root.run-requested(); }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.divider;
+        }
+
+        // Batch list
+        Rectangle {
+            width: 220px;
+
+            VerticalLayout {
+                Rectangle {
+                    height: 44px;
+
+                    HorizontalLayout {
+                        padding-left: 14px;
+                        padding-right: 12px;
+                        spacing: 8px;
+
+                        Text {
+                            horizontal-stretch: 1;
+                            text: Strings.files-title(Workspace.files.length);
+                            color: Theme.text;
+                            font-size: Theme.fs-base;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+
+                        if Workspace.files.length > 0 && !root.running: Text {
+                            text: @tr("Clear");
+                            color: Theme.text-2;
+                            font-size: Theme.fs-small;
+                            vertical-alignment: center;
+
+                            TouchArea {
+                                clicked => { Workspace.clear-requested(); }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Theme.divider;
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+
+                    if Workspace.files.length == 0: Text {
+                        x: 14px;
+                        y: 14px;
+                        width: parent.width - 28px;
+                        text: @tr("Drop images here, or add them with the button below.");
+                        color: Theme.text-2;
+                        font-size: Theme.fs-base;
+                        wrap: word-wrap;
+                    }
+
+                    ListView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        for entry[index] in Workspace.files: FileItem {
+                            row: entry;
+                            selected: index == Workspace.selected;
+                            clicked => { Workspace.file-selected(index); }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Theme.divider;
+                }
+
+                Rectangle {
+                    height: 76px;
+
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 6px;
+
+                        SButton {
+                            text: @tr("Add files...");
+                            enabled: !root.running;
+                            clicked => { Workspace.add-requested(); }
+                        }
+
+                        Text {
+                            text: Strings.batch-summary(Workspace.done-count, Workspace.files.length, Workspace.failed-count);
+                            color: Workspace.failed-count > 0 ? Theme.error : Theme.text-2;
+                            font-size: Theme.fs-small;
+                            overflow: elide;
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            width: 1px;
+            background: Theme.divider;
+        }
+
+        // Before / after
+        VerticalLayout {
+            horizontal-stretch: 1;
+            padding: 12px;
+            spacing: 8px;
+
+            SSwitch {
+                text: @tr("Link zoom and position");
+                checked <=> Workspace.link-views;
+            }
+
+            viewers := Rectangle {
+                vertical-stretch: 1;
+                // Side by side when there is room, otherwise one above the other.
+                property <bool> wide: self.width >= 620px;
+                property <length> gap: 8px;
+                property <length> vw: self.wide ? (self.width - self.gap) / 2 : self.width;
+                property <length> vh: self.wide ? self.height : (self.height - self.gap) / 2;
+
+                input-viewer := ImageViewer {
+                    x: 0;
+                    y: 0;
+                    width: viewers.vw;
+                    height: viewers.vh;
+                    title: @tr("Input");
+                    source: Workspace.input-image;
+                    loaded: Workspace.input-loaded;
+                    info: Workspace.input-info;
+                    message: Strings.viewer-message("input", Workspace.input-state, Workspace.input-error);
+                    message-kind: Workspace.input-state;
+                    zoom <=> Workspace.in-zoom;
+                    cx <=> Workspace.in-cx;
+                    cy <=> Workspace.in-cy;
+                    view-changed => {
+                        if (Workspace.link-views) {
+                            Workspace.out-zoom = Workspace.in-zoom;
+                            Workspace.out-cx = Workspace.in-cx;
+                            Workspace.out-cy = Workspace.in-cy;
+                        }
+                    }
+                }
+
+                output-viewer := ImageViewer {
+                    x: viewers.wide ? viewers.vw + viewers.gap : 0;
+                    y: viewers.wide ? 0 : viewers.vh + viewers.gap;
+                    width: viewers.vw;
+                    height: viewers.vh;
+                    title: @tr("Output");
+                    source: Workspace.output-image;
+                    loaded: Workspace.output-loaded;
+                    info: Workspace.output-info;
+                    message: Strings.viewer-message("output", Workspace.output-state, Workspace.output-error);
+                    message-kind: Workspace.output-state;
+                    zoom <=> Workspace.out-zoom;
+                    cx <=> Workspace.out-cx;
+                    cy <=> Workspace.out-cy;
+                    view-changed => {
+                        if (Workspace.link-views) {
+                            Workspace.in-zoom = Workspace.out-zoom;
+                            Workspace.in-cx = Workspace.out-cx;
+                            Workspace.in-cy = Workspace.out-cy;
+                        }
+                    }
+                }
+            }
+
+            // Downloads sit under the output picture.
+            HorizontalLayout {
+                padding-left: viewers.wide ? viewers.vw + viewers.gap : 0px;
+                spacing: 8px;
+                height: 32px;
+
+                SButton {
+                    horizontal-stretch: 1;
+                    text: @tr("Download image");
+                    enabled: Workspace.selected-has-result;
+                    clicked => { Workspace.save-one(); }
+                }
+            }
+
+            HorizontalLayout {
+                padding-left: viewers.wide ? viewers.vw + viewers.gap : 0px;
+                spacing: 8px;
+                height: 32px;
+
+                SButton {
+                    horizontal-stretch: 1;
+                    text: Strings.download-all(Workspace.result-count);
+                    enabled: Workspace.result-count > 0 && !Workspace.archiving && !root.running;
+                    clicked => { Workspace.save-all(Workspace.archive-index); }
+                }
+
+                SSelect {
+                    width: 84px;
+                    min-width: 84px;
+                    open-up: true;
+                    model: ["ZIP", "7z"];
+                    current-index <=> Workspace.archive-index;
+                }
+            }
+
+            Text {
+                text: Workspace.archiving ? @tr("Packing the archive...") : Strings.note(Workspace.note-kind, Workspace.note-arg);
+                color: Workspace.note-kind == "error" || Workspace.note-kind == "no-files" ? Theme.error : Theme.text-2;
+                font-size: Theme.fs-small;
+                wrap: word-wrap;
+                height: 28px;
+            }
+        }
+    }
+}

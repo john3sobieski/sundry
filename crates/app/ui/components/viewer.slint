@@ -17,8 +17,10 @@ export component ImageViewer inherits Rectangle {
     // Fired only by the user's own zoom or pan.
     callback view-changed();
 
-    property <length> vw: view.width;
-    property <length> vh: view.height;
+    // The viewport is placed by hand, not by a layout: its size must not depend on
+    // the toolbar (whose zoom text depends on this size).
+    property <length> vw: root.width;
+    property <length> vh: root.height - 35px;
     property <float> aspect: root.source.height > 0 ? root.source.width / root.source.height : 1;
     property <length> base-w: Math.min(vw, vh * aspect);
     property <length> dw: base-w * root.zoom;
@@ -71,8 +73,11 @@ export component ImageViewer inherits Rectangle {
         root.view-changed();
     }
 
-    VerticalLayout {
+    Rectangle {
         Rectangle {
+            x: 0;
+            y: 0;
+            width: root.width;
             height: 34px;
 
             HorizontalLayout {
@@ -111,8 +116,8 @@ export component ImageViewer inherits Rectangle {
                 }
 
                 SButton {
-                    width: 28px;
                     min-width: 28px;
+                    max-width: 28px;
                     min-height: 24px;
                     max-height: 24px;
                     text: "\u{2212}";
@@ -121,8 +126,8 @@ export component ImageViewer inherits Rectangle {
                 }
 
                 SButton {
-                    width: 28px;
                     min-width: 28px;
+                    max-width: 28px;
                     min-height: 24px;
                     max-height: 24px;
                     text: "+";
@@ -131,8 +136,8 @@ export component ImageViewer inherits Rectangle {
                 }
 
                 SButton {
-                    width: 64px;
                     min-width: 64px;
+                    max-width: 64px;
                     min-height: 24px;
                     max-height: 24px;
                     text: @tr("Fit");
@@ -141,8 +146,8 @@ export component ImageViewer inherits Rectangle {
                 }
 
                 SButton {
-                    width: 40px;
                     min-width: 40px;
+                    max-width: 40px;
                     min-height: 24px;
                     max-height: 24px;
                     text: "1:1";
@@ -153,12 +158,18 @@ export component ImageViewer inherits Rectangle {
         }
 
         Rectangle {
+            x: 0;
+            y: 34px;
+            width: root.width;
             height: 1px;
             background: Theme.divider;
         }
 
         view := Rectangle {
-            vertical-stretch: 1;
+            x: 0;
+            y: 35px;
+            width: root.width;
+            height: root.vh;
             clip: true;
 
             if root.loaded: Image {

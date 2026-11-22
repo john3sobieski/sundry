@@ -135,6 +135,12 @@ export component ImageWorkspace inherits Rectangle {
 
     background: Theme.bg;
 
+    // Derived from this component's own width, not from the layout below: the
+    // download rows depend on `wide`, and the viewers' width depends on them.
+    property <length> area-w: root.width - 526px - 24px;
+    property <bool> wide: area-w >= 620px;
+    property <length> vw: root.wide ? (area-w - 8px) / 2 : area-w;
+
     HorizontalLayout {
         // Settings
         Rectangle {
@@ -159,8 +165,8 @@ export component ImageWorkspace inherits Rectangle {
                     }
 
                     SButton {
-                        width: 64px;
                         min-width: 64px;
+                        max-width: 64px;
                         min-height: 26px;
                         max-height: 26px;
                         text: @tr("Tools");
@@ -312,15 +318,12 @@ export component ImageWorkspace inherits Rectangle {
             viewers := Rectangle {
                 vertical-stretch: 1;
                 // Side by side when there is room, otherwise one above the other.
-                property <bool> wide: self.width >= 620px;
-                property <length> gap: 8px;
-                property <length> vw: self.wide ? (self.width - self.gap) / 2 : self.width;
-                property <length> vh: self.wide ? self.height : (self.height - self.gap) / 2;
+                property <length> vh: root.wide ? self.height : (self.height - 8px) / 2;
 
                 input-viewer := ImageViewer {
                     x: 0;
                     y: 0;
-                    width: viewers.vw;
+                    width: root.vw;
                     height: viewers.vh;
                     title: @tr("Input");
                     source: Workspace.input-image;
@@ -341,9 +344,9 @@ export component ImageWorkspace inherits Rectangle {
                 }
 
                 output-viewer := ImageViewer {
-                    x: viewers.wide ? viewers.vw + viewers.gap : 0;
-                    y: viewers.wide ? 0 : viewers.vh + viewers.gap;
-                    width: viewers.vw;
+                    x: root.wide ? root.vw + 8px : 0;
+                    y: root.wide ? 0 : viewers.vh + 8px;
+                    width: root.vw;
                     height: viewers.vh;
                     title: @tr("Output");
                     source: Workspace.output-image;
@@ -366,7 +369,7 @@ export component ImageWorkspace inherits Rectangle {
 
             // Downloads sit under the output picture.
             HorizontalLayout {
-                padding-left: viewers.wide ? viewers.vw + viewers.gap : 0px;
+                padding-left: root.wide ? root.vw + 8px : 0px;
                 spacing: 8px;
                 height: 32px;
 
@@ -379,7 +382,7 @@ export component ImageWorkspace inherits Rectangle {
             }
 
             HorizontalLayout {
-                padding-left: viewers.wide ? viewers.vw + viewers.gap : 0px;
+                padding-left: root.wide ? root.vw + 8px : 0px;
                 spacing: 8px;
                 height: 32px;
 
@@ -391,8 +394,8 @@ export component ImageWorkspace inherits Rectangle {
                 }
 
                 SSelect {
-                    width: 84px;
                     min-width: 84px;
+                    max-width: 84px;
                     open-up: true;
                     model: ["ZIP", "7z"];
                     current-index <=> Workspace.archive-index;

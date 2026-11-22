@@ -38,9 +38,17 @@ pub enum Mode {
     Percent(f64),
     LongSide(u32),
     ShortSide(u32),
-    Size { width: u32, height: u32, fit: Fit },
+    Size {
+        width: u32,
+        height: u32,
+        fit: Fit,
+    },
     /// A box with the given width whose height follows from `ratio` (width / height).
-    Ratio { ratio: f64, width: u32, fit: Fit },
+    Ratio {
+        ratio: f64,
+        width: u32,
+        fit: Fit,
+    },
 }
 
 /// How to produce the result from the source picture.

@@ -127,9 +127,9 @@ impl ParamSpec {
     /// Whether a UI should show this parameter; `current` returns the present
     /// value of another parameter. A condition on an unknown value is not met.
     pub fn is_shown(&self, current: impl Fn(&str) -> Option<Value>) -> bool {
-        self.shown_when.iter().all(|c| {
-            current(&c.param).is_some_and(|v| c.one_of.contains(&v.condition_text()))
-        })
+        self.shown_when
+            .iter()
+            .all(|c| current(&c.param).is_some_and(|v| c.one_of.contains(&v.condition_text())))
     }
 
     pub fn boolean(id: impl Into<String>, default: bool) -> Self {

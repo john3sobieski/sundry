@@ -154,8 +154,7 @@ impl Tool for Resize {
         let boxed = ["size", "ratio"];
         vec![
             ParamSpec::choice("mode", MODES, "size"),
-            ParamSpec::int_range("width", 1920, 1, i64::from(MAX_SIDE))
-                .show_when("mode", &boxed),
+            ParamSpec::int_range("width", 1920, 1, i64::from(MAX_SIDE)).show_when("mode", &boxed),
             ParamSpec::int_range("height", 1080, 1, i64::from(MAX_SIDE))
                 .show_when("mode", &["size"]),
             ParamSpec::text("ratio", "16:9").show_when("mode", &["ratio"]),

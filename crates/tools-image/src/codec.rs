@@ -236,8 +236,10 @@ pub fn encode(
                 OutFormat::Tiff => ImageFormat::Tiff,
                 _ => ImageFormat::Ico,
             };
-            // GIF is always written from RGBA; the others drop an unused alpha channel.
-            let dynamic = if opaque && other != OutFormat::Gif {
+            // GIF and ICO (whose decoder wants RGBA PNG) are written from RGBA;
+            // the others drop an unused alpha channel.
+            let keep_alpha = matches!(other, OutFormat::Gif | OutFormat::Ico);
+            let dynamic = if opaque && !keep_alpha {
                 DynamicImage::ImageRgb8(DynamicImage::ImageRgba8(image).into_rgb8())
             } else {
                 DynamicImage::ImageRgba8(image)

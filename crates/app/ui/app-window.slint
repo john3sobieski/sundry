@@ -225,8 +225,10 @@ export component AppWindow inherits Window {
 
                 // Search, tool list and details
                 VerticalLayout {
-                    if !root.workspace: Rectangle {
-                        height: 56px;
+                    // Not conditional: Ctrl+K focuses `search` from outside this block.
+                    Rectangle {
+                        visible: !root.workspace;
+                        height: root.workspace ? 0px : 56px;
 
                         search := SField {
                             x: 16px;

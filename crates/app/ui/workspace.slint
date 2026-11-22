@@ -61,7 +61,7 @@ export global Workspace {
 }
 
 component FileItem inherits Rectangle {
-    in property <FileRow> row;
+    in property <FileRow> entry;
     in property <bool> selected;
     callback clicked();
 
@@ -91,7 +91,7 @@ component FileItem inherits Rectangle {
 
             Text {
                 horizontal-stretch: 1;
-                text: root.row.name;
+                text: root.entry.name;
                 color: Theme.text;
                 font-size: Theme.fs-base;
                 font-weight: root.selected ? 600 : 400;
@@ -99,15 +99,15 @@ component FileItem inherits Rectangle {
             }
 
             Text {
-                text: Strings.file-status(root.row.status);
-                color: root.row.status == "ok" ? Theme.success : Theme.error;
+                text: Strings.file-status(root.entry.status);
+                color: root.entry.status == "ok" ? Theme.success : Theme.error;
                 font-size: Theme.fs-small;
             }
         }
 
         Text {
-            text: root.row.status == "pending" ? root.row.size : root.row.detail;
-            color: root.row.status == "error" ? Theme.error : Theme.text-2;
+            text: root.entry.status == "pending" ? root.entry.size : root.entry.detail;
+            color: root.entry.status == "error" ? Theme.error : Theme.text-2;
             font-family: Theme.mono;
             font-size: Theme.fs-small;
             overflow: elide;
@@ -257,7 +257,7 @@ export component ImageWorkspace inherits Rectangle {
                         height: parent.height;
 
                         for entry[index] in Workspace.files: FileItem {
-                            row: entry;
+                            entry: entry;
                             selected: index == Workspace.selected;
                             clicked => { Workspace.file-selected(index); }
                         }

@@ -17,12 +17,14 @@ export global Strings {
     pure public function tool-name(id: string, fallback: string) -> string {
         if (id == "convert.data") { return @tr("Data size"); }
         if (id == "image.resize") { return @tr("Resize image"); }
+        if (id == "image.convert") { return @tr("Convert image"); }
         return fallback;
     }
 
     pure public function tool-description(id: string, fallback: string) -> string {
         if (id == "convert.data") { return @tr("Converts bits, bytes, SI units (kB = 1000 B) and IEC units (KiB = 1024 B)."); }
         if (id == "image.resize") { return @tr("Changes the size or proportion of images, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
+        if (id == "image.convert") { return @tr("Converts images between PNG, JPEG, WebP, AVIF, BMP, GIF, TIFF and ICO, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         return fallback;
     }
 
@@ -44,6 +46,11 @@ export global Strings {
             if (param == "filter") { return @tr("Filter"); }
             if (param == "format") { return @tr("Output format"); }
             if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
+        }
+        if (tool == "image.convert") {
+            if (param == "format") { return @tr("Target format"); }
+            if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
+            if (param == "background") { return @tr("Background color (JPEG)"); }
         }
         return fallback;
     }
@@ -90,6 +97,16 @@ export global Strings {
             if (option == "mitchell") { return "Mitchell"; }
             if (option == "bilinear") { return "Bilinear"; }
             if (option == "box") { return "Box"; }
+        }
+        if (tool == "image.convert" && param == "format") {
+            if (option == "png") { return "PNG"; }
+            if (option == "jpeg") { return "JPEG"; }
+            if (option == "webp") { return "WebP"; }
+            if (option == "avif") { return "AVIF"; }
+            if (option == "bmp") { return "BMP"; }
+            if (option == "gif") { return "GIF"; }
+            if (option == "tiff") { return "TIFF"; }
+            if (option == "ico") { return "ICO"; }
         }
         return option;
     }

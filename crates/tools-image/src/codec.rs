@@ -1,6 +1,7 @@
 //! Decoding and encoding of raster images (all through 8-bit RGBA in memory).
 
 use std::io::Cursor;
+use std::path::Path;
 
 use image::codecs::jpeg::JpegEncoder;
 use image::metadata::Orientation;
@@ -116,6 +117,16 @@ pub fn format_name(format: Option<ImageFormat>) -> &'static str {
         Some(ImageFormat::Qoi) => "QOI",
         _ => "image",
     }
+}
+
+/// `photo.jpeg` -> `photo.png`; only the file name is kept.
+pub fn output_name(name: Option<&str>, format: OutFormat) -> String {
+    let stem = name
+        .and_then(|n| Path::new(n).file_stem())
+        .and_then(|s| s.to_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or("image");
+    format!("{stem}.{}", format.extension())
 }
 
 fn limits() -> Limits {

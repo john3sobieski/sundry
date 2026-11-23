@@ -1,7 +1,5 @@
 //! `image.resize`: changes the size or proportion of pictures.
 
-use std::path::Path;
-
 use fast_image_resize::images::Image as FirImage;
 use fast_image_resize::{FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer};
 use image::{Rgba, RgbaImage};
@@ -11,6 +9,7 @@ use sundry_core::{
 };
 
 use crate::codec::{self, OutFormat};
+use crate::map_items;
 use crate::plan::{self, Fit, MAX_SIDE, Mode};
 
 const FILTERS: &[&str] = &["lanczos3", "catmull_rom", "mitchell", "bilinear", "box", "nearest"];
@@ -120,18 +119,8 @@ impl Settings {
             decoded.format.and_then(OutFormat::from_image_format).unwrap_or(OutFormat::Png)
         });
         let data = codec::encode(image, format, self.quality, self.background)?;
-        Ok(Item::bytes(data).named(output_name(item.name.as_deref(), format)))
+        Ok(Item::bytes(data).named(codec::output_name(item.name.as_deref(), format)))
     }
-}
-
-/// `photo.jpeg` -> `photo.png`; only the file name is kept.
-fn output_name(name: Option<&str>, format: OutFormat) -> String {
-    let stem = name
-        .and_then(|n| Path::new(n).file_stem())
-        .and_then(|s| s.to_str())
-        .filter(|s| !s.is_empty())
-        .unwrap_or("image");
-    format!("{stem}.{}", format.extension())
 }
 
 impl Tool for Resize {
@@ -177,22 +166,7 @@ impl Tool for Resize {
 
     fn run(&self, input: &Input, params: &Params, job: &Job) -> Result<Output> {
         let settings = Settings::from_params(params)?;
-        let total = input.items.len();
-        let mut items = Vec::with_capacity(total);
-        for (i, item) in input.items.iter().enumerate() {
-            job.check_cancelled()?;
-            let done = settings.process(item).map_err(|err| match (&item.name, err) {
-                (_, Error::Cancelled) => Error::Cancelled,
-                (Some(name), err) => Error::Processing(format!("{name}: {err}")),
-                (None, err) => err,
-            })?;
-            items.push(done);
-            // A batch runner passes single items and reports the batch progress itself.
-            if total > 1 {
-                job.set_progress((i + 1) as f32 / total as f32);
-            }
-        }
-        Ok(Output { items })
+        map_items(input, job, |item| settings.process(item))
     }
 }
 

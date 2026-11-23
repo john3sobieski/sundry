@@ -178,6 +178,18 @@ msgstr "Изменение размера"
 msgid "Changes the size or proportion of images, one file or a whole batch. Metadata is dropped and animations keep only their first frame."
 msgstr "Меняет размер или пропорции изображений: одного файла или целой пачки. Метаданные удаляются, у анимации остаётся только первый кадр."
 
+msgid "Convert image"
+msgstr "Конвертация изображений"
+
+msgid "Converts images between PNG, JPEG, WebP, AVIF, BMP, GIF, TIFF and ICO, one file or a whole batch. Metadata is dropped and animations keep only their first frame."
+msgstr "Переводит изображения между PNG, JPEG, WebP, AVIF, BMP, GIF, TIFF и ICO: один файл или целая пачка. Метаданные удаляются, у анимации остаётся только первый кадр."
+
+msgid "Target format"
+msgstr "Целевой формат"
+
+msgid "Background color (JPEG)"
+msgstr "Цвет фона (JPEG)"
+
 msgid "Mode"
 msgstr "Режим"
 

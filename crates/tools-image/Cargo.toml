@@ -1,6 +1,6 @@
 [package]
 name = "sundry-tools-image"
-description = "Image tools for Sundry: resize and, later, convert, compress, crop"
+description = "Image tools for Sundry: resize, convert and, later, compress, crop"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

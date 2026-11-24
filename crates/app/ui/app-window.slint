@@ -15,6 +15,8 @@ export { Theme, ThemeMode, Strings, FormField, Workspace, FileRow }
 export global DropApi {
     pure callback can-drop(data-transfer) -> bool;
     callback dropped(data-transfer);
+    // Set by the host while files from the file manager hover over the window.
+    in property <bool> files-over: false;
 }
 
 export struct CategoryItem {
@@ -473,7 +475,7 @@ export component AppWindow inherits Window {
                                 }
                             }
 
-                            if drop.has-drag: Rectangle {
+                            if drop.has-drag || DropApi.files-over: Rectangle {
                                 background: Theme.bg.with-alpha(0.9);
                                 border-width: 2px;
                                 border-color: Theme.text;

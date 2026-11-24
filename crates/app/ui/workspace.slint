@@ -42,6 +42,9 @@ export global Workspace {
     in-out property <float> out-cx: 0.5;
     in-out property <float> out-cy: 0.5;
     in-out property <bool> link-views: true;
+    // Viewer background: auto (follows the theme) | white | black.
+    in-out property <string> input-backdrop: "auto";
+    in-out property <string> output-backdrop: "auto";
 
     in property <int> done-count;
     in property <int> failed-count;
@@ -365,6 +368,7 @@ export component ImageWorkspace inherits Rectangle {
                     info: Workspace.input-info;
                     message: Strings.viewer-message("input", Workspace.input-state, Workspace.input-error);
                     message-kind: Workspace.input-state;
+                    backdrop <=> Workspace.input-backdrop;
                     zoom <=> Workspace.in-zoom;
                     cx <=> Workspace.in-cx;
                     cy <=> Workspace.in-cy;
@@ -388,6 +392,7 @@ export component ImageWorkspace inherits Rectangle {
                     info: Workspace.output-info;
                     message: Strings.viewer-message("output", Workspace.output-state, Workspace.output-error);
                     message-kind: Workspace.output-state;
+                    backdrop <=> Workspace.output-backdrop;
                     zoom <=> Workspace.out-zoom;
                     cx <=> Workspace.out-cx;
                     cy <=> Workspace.out-cy;

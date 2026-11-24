@@ -11,6 +11,8 @@ export component ImageViewer inherits Rectangle {
     in property <string> info;
     in property <string> message;
     in property <string> message-kind;
+    // Background behind the picture: auto (follows the theme) | white | black.
+    in-out property <string> backdrop: "auto";
     in-out property <float> zoom: 1;
     in-out property <float> cx: 0.5;
     in-out property <float> cy: 0.5;
@@ -105,6 +107,32 @@ export component ImageViewer inherits Rectangle {
                     overflow: elide;
                 }
 
+                // Background switch: auto / white / black.
+                for option in ["auto", "white", "black"]: VerticalLayout {
+                    alignment: center;
+
+                    Rectangle {
+                        width: 18px;
+                        height: 18px;
+                        background: option == "white" ? #FFFFFF : (option == "black" ? #000000 : Theme.surface);
+                        border-width: root.backdrop == option ? 2px : 1px;
+                        border-color: root.backdrop == option ? Theme.text : Theme.control-border;
+
+                        Text {
+                            visible: option == "auto";
+                            text: "A";
+                            color: Theme.text-2;
+                            font-size: 11px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        TouchArea {
+                            clicked => { root.backdrop = option; }
+                        }
+                    }
+                }
+
                 Text {
                     width: 44px;
                     text: root.loaded ? Math.round(dw / (root.source.width * 1px) * 100) + "%" : "";
@@ -171,6 +199,7 @@ export component ImageViewer inherits Rectangle {
             width: root.width;
             height: root.vh;
             clip: true;
+            background: root.backdrop == "white" ? #FFFFFF : (root.backdrop == "black" ? #000000 : transparent);
 
             if root.loaded: Image {
                 source: root.source;

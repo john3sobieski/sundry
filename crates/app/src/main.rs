@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 
+use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use sundry_core::{
     Category, Error, Input, InputKind, Item, Job, Language, Media, ParamKind, ParamSpec, Params,
@@ -510,6 +511,52 @@ fn request_files(shell: &Rc<Shell>, weak: slint::Weak<AppWindow>) {
     });
 }
 
+/// Files dragged in from the file manager.
+///
+/// Slint's `DropArea` does not receive them from the OS (the winit backend reports them only as
+/// window events), so they are taken from winit directly. One event arrives per file, so they are
+/// collected briefly and added together.
+fn bind_file_drop(ui: &AppWindow, shell: &Rc<Shell>) {
+    let pending: Rc<RefCell<Vec<PathBuf>>> = Rc::default();
+    let (weak, shell) = (ui.as_weak(), Rc::clone(shell));
+    let set_over = {
+        let weak = weak.clone();
+        move |over: bool| {
+            if let Some(ui) = weak.upgrade() {
+                ui.global::<DropApi>().set_files_over(over);
+            }
+        }
+    };
+    ui.window().on_winit_window_event(move |_, event| {
+        match event {
+            winit::event::WindowEvent::HoveredFile(_) => {
+                set_over(shell.input_kind().accepts_files());
+            }
+            winit::event::WindowEvent::HoveredFileCancelled => set_over(false),
+            winit::event::WindowEvent::DroppedFile(path) => {
+                set_over(false);
+                let first = {
+                    let mut files = pending.borrow_mut();
+                    files.push(path.clone());
+                    files.len() == 1
+                };
+                if first {
+                    let (pending, weak, shell) =
+                        (Rc::clone(&pending), weak.clone(), Rc::clone(&shell));
+                    slint::Timer::single_shot(Duration::from_millis(60), move || {
+                        let paths = std::mem::take(&mut *pending.borrow_mut());
+                        if let Some(ui) = weak.upgrade() {
+                            shell.add_files(&ui, paths);
+                        }
+                    });
+                }
+            }
+            _ => {}
+        }
+        EventResult::Propagate
+    });
+}
+
 /// Connects dropped files, run and cancel to the shell.
 fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
     let api = ui.global::<DropApi>();
@@ -694,6 +741,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     bind_form(&ui, &shell);
     bind_run(&ui, &shell);
+    bind_file_drop(&ui, &shell);
 
     // Mirrors the running job's progress into the status bar.
     let timer = slint::Timer::default();

@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 rust-version = "1.93"
 license = "PolyForm-Noncommercial-1.0.0"
@@ -29,7 +29,8 @@ image = { version = "0.25", default-features = false, features = [
 ] }
 sevenz-rust2 = { version = "0.25", default-features = false, features = ["compress"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
-slint = "1.18"
+# `unstable-winit-030`: files dragged from the file manager arrive as winit events.
+slint = { version = "1.18", features = ["unstable-winit-030"] }
 slint-build = "1.18"
 rfd = "0.17"
 sys-locale = "0.3"

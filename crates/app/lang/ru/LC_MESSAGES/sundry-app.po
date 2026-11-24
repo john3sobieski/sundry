@@ -190,6 +190,39 @@ msgstr "Целевой формат"
 msgid "Background color (JPEG)"
 msgstr "Цвет фона (JPEG)"
 
+msgid "Round corners"
+msgstr "Скругление углов"
+
+msgid "Rounds all or only chosen corners of images with a smooth transparent edge, one file or a whole batch. The result needs a format with transparency. Metadata is dropped and animations keep only their first frame."
+msgstr "Скругляет все или только выбранные углы изображений с плавным прозрачным краем: один файл или целая пачка. Для результата нужен формат с прозрачностью. Метаданные удаляются, у анимации остаётся только первый кадр."
+
+msgid "Radius unit"
+msgstr "Единица радиуса"
+
+msgid "Radius, px"
+msgstr "Радиус, px"
+
+msgid "Radius, % of shorter side"
+msgstr "Радиус, % от короткой стороны"
+
+msgid "Top left corner"
+msgstr "Левый верхний угол"
+
+msgid "Top right corner"
+msgstr "Правый верхний угол"
+
+msgid "Bottom right corner"
+msgstr "Правый нижний угол"
+
+msgid "Bottom left corner"
+msgstr "Левый нижний угол"
+
+msgid "Quality (AVIF)"
+msgstr "Качество (AVIF)"
+
+msgid "Pixels"
+msgstr "Пиксели"
+
 msgid "Mode"
 msgstr "Режим"
 

@@ -18,6 +18,7 @@ export global Strings {
         if (id == "convert.data") { return @tr("Data size"); }
         if (id == "image.resize") { return @tr("Resize image"); }
         if (id == "image.convert") { return @tr("Convert image"); }
+        if (id == "image.round_corners") { return @tr("Round corners"); }
         return fallback;
     }
 
@@ -25,6 +26,7 @@ export global Strings {
         if (id == "convert.data") { return @tr("Converts bits, bytes, SI units (kB = 1000 B) and IEC units (KiB = 1024 B)."); }
         if (id == "image.resize") { return @tr("Changes the size or proportion of images, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.convert") { return @tr("Converts images between PNG, JPEG, WebP, AVIF, BMP, GIF, TIFF and ICO, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
+        if (id == "image.round_corners") { return @tr("Rounds all or only chosen corners of images with a smooth transparent edge, one file or a whole batch. The result needs a format with transparency. Metadata is dropped and animations keep only their first frame."); }
         return fallback;
     }
 
@@ -51,6 +53,17 @@ export global Strings {
             if (param == "format") { return @tr("Target format"); }
             if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
             if (param == "background") { return @tr("Background color (JPEG)"); }
+        }
+        if (tool == "image.round_corners") {
+            if (param == "unit") { return @tr("Radius unit"); }
+            if (param == "radius_px") { return @tr("Radius, px"); }
+            if (param == "radius_percent") { return @tr("Radius, % of shorter side"); }
+            if (param == "top_left") { return @tr("Top left corner"); }
+            if (param == "top_right") { return @tr("Top right corner"); }
+            if (param == "bottom_right") { return @tr("Bottom right corner"); }
+            if (param == "bottom_left") { return @tr("Bottom left corner"); }
+            if (param == "format") { return @tr("Output format"); }
+            if (param == "quality") { return @tr("Quality (AVIF)"); }
         }
         return fallback;
     }
@@ -105,6 +118,15 @@ export global Strings {
             if (option == "avif") { return "AVIF"; }
             if (option == "bmp") { return "BMP"; }
             if (option == "gif") { return "GIF"; }
+            if (option == "tiff") { return "TIFF"; }
+            if (option == "ico") { return "ICO"; }
+        }
+        if (tool == "image.round_corners") {
+            if (option == "px") { return @tr("Pixels"); }
+            if (option == "percent") { return @tr("Percent"); }
+            if (option == "png") { return "PNG"; }
+            if (option == "webp") { return "WebP"; }
+            if (option == "avif") { return "AVIF"; }
             if (option == "tiff") { return "TIFF"; }
             if (option == "ico") { return "ICO"; }
         }

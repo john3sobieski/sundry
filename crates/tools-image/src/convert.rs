@@ -149,8 +149,8 @@ mod tests {
         let source = pixels(16, 16, 128);
         for id in ["png", "webp", "tiff"] {
             let params = Params::new().with("format", id);
-            let source = if id == "png" { OutFormat::Tiff } else { OutFormat::Png };
-            let out = convert_one(params, picture_as(source, 16, 16, 128, "a")).unwrap();
+            let from = if id == "png" { OutFormat::Tiff } else { OutFormat::Png };
+            let out = convert_one(params, picture_as(from, 16, 16, 128, "a")).unwrap();
             let back = codec::decode(out.data.as_bytes()).unwrap().image;
             assert_eq!(back, source, "{id}");
         }
@@ -207,9 +207,8 @@ mod tests {
 
     #[test]
     fn a_batch_keeps_order_and_names() {
-        let input = Input {
-            items: vec![picture(10, 10, 255, "one.png"), picture(20, 10, 255, "two.png")],
-        };
+        let input =
+            Input { items: vec![picture(10, 10, 255, "one.png"), picture(20, 10, 255, "two.png")] };
         let out = convert(Params::new().with("format", "bmp"), input).unwrap();
         let names: Vec<_> = out.items.iter().map(|i| i.name.clone().unwrap()).collect();
         assert_eq!(names, ["one.bmp", "two.bmp"]);
@@ -217,7 +216,8 @@ mod tests {
 
     #[test]
     fn unnamed_input_gets_a_default_name() {
-        let item = Item::bytes(codec::encode(pixels(4, 4, 255), OutFormat::Png, 90, [0; 4]).unwrap());
+        let item =
+            Item::bytes(codec::encode(pixels(4, 4, 255), OutFormat::Png, 90, [0; 4]).unwrap());
         let out = convert_one(Params::new().with("format", "gif"), item).unwrap();
         assert_eq!(out.name.as_deref(), Some("image.gif"));
     }

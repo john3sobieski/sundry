@@ -4,7 +4,7 @@ Offline-first desktop toolbox for everyday tasks: images, vectorization,
 converters, text and files. Written in Rust.
 
 **Status:** early development. The core library (`crates/core`) and the
-command-line frontend (`crates/cli`) exist; the desktop shell (`crates/app`, Slint) is in progress. Tools so far: data size converter, image resize and image format conversion (batch, before/after preview, ZIP/7z export).
+command-line frontend (`crates/cli`) exist; the desktop shell (`crates/app`, Slint) is in progress. Tools so far: data size converter, image resize, image format conversion and corner rounding (batch, before/after preview, ZIP/7z export).
 
 ## Build
 
@@ -38,6 +38,12 @@ Convert images to WebP:
 
 ```
 cargo run -p sundry-cli -- image.convert -i a.png -i b.jpg -p format=webp -o out/
+```
+
+Round corners (radius 10 % of the shorter side):
+
+```
+cargo run -p sundry-cli -- image.round_corners -i a.jpg -p unit=percent -p radius_percent=10 -o out/
 ```
 
 Example (data size converter):

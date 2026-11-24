@@ -37,6 +37,13 @@ impl Settings {
         let Data::Bytes(bytes) = &item.data else {
             return Err(Error::InvalidInput("expected an image file".to_owned()));
         };
+        // The format is detected from the content, not from the file name.
+        if let Some((_, _, Some(source))) = codec::probe(bytes)
+            && OutFormat::from_image_format(source) == Some(self.format)
+        {
+            let name = codec::format_name(Some(source));
+            return Err(Error::InvalidInput(format!("already in {name} format")));
+        }
         let decoded = codec::decode(bytes)?;
         let data = codec::encode(decoded.image, self.format, self.quality, self.background)?;
         Ok(Item::bytes(data).named(codec::output_name(item.name.as_deref(), self.format)))
@@ -91,9 +98,13 @@ mod tests {
         })
     }
 
-    fn picture(width: u32, height: u32, alpha: u8, name: &str) -> Item {
-        let bytes = codec::encode(pixels(width, height, alpha), OutFormat::Png, 90, [0; 4]);
+    fn picture_as(format: OutFormat, width: u32, height: u32, alpha: u8, name: &str) -> Item {
+        let bytes = codec::encode(pixels(width, height, alpha), format, 90, [0; 4]);
         Item::bytes(bytes.unwrap()).named(name)
+    }
+
+    fn picture(width: u32, height: u32, alpha: u8, name: &str) -> Item {
+        picture_as(OutFormat::Png, width, height, alpha, name)
     }
 
     fn convert(params: Params, input: Input) -> Result<Output> {
@@ -106,7 +117,8 @@ mod tests {
 
     #[test]
     fn the_default_settings_are_valid() {
-        let out = convert_one(Params::new(), picture(20, 10, 255, "dir/photo.JPG")).unwrap();
+        let item = picture_as(OutFormat::Jpeg, 20, 10, 255, "dir/photo.JPG");
+        let out = convert_one(Params::new(), item).unwrap();
         assert_eq!(out.name.as_deref(), Some("photo.png"));
         let (w, h, format) = codec::probe(out.data.as_bytes()).unwrap();
         assert_eq!((w, h, format), (20, 10, Some(image::ImageFormat::Png)));
@@ -116,7 +128,9 @@ mod tests {
     fn every_target_format_is_written() {
         for id in OutFormat::IDS {
             let params = Params::new().with("format", *id);
-            let out = convert_one(params, picture(24, 16, 255, "a.png")).unwrap();
+            // The source must differ from the target format.
+            let source = if *id == "png" { OutFormat::Bmp } else { OutFormat::Png };
+            let out = convert_one(params, picture_as(source, 24, 16, 255, "a")).unwrap();
             let format = OutFormat::parse(id).unwrap();
             assert_eq!(out.name.as_deref(), Some(format!("a.{}", format.extension()).as_str()));
             let bytes = out.data.as_bytes();
@@ -135,7 +149,8 @@ mod tests {
         let source = pixels(16, 16, 128);
         for id in ["png", "webp", "tiff"] {
             let params = Params::new().with("format", id);
-            let out = convert_one(params, picture(16, 16, 128, "a.png")).unwrap();
+            let source = if id == "png" { OutFormat::Tiff } else { OutFormat::Png };
+            let out = convert_one(params, picture_as(source, 16, 16, 128, "a")).unwrap();
             let back = codec::decode(out.data.as_bytes()).unwrap().image;
             assert_eq!(back, source, "{id}");
         }
@@ -169,6 +184,25 @@ mod tests {
             let out = convert_one(Params::new().with("format", "webp"), item).unwrap();
             assert_eq!(out.name.as_deref(), Some("in.webp"), "{format:?}");
         }
+    }
+
+    #[test]
+    fn the_same_format_is_refused() {
+        let formats = [
+            (OutFormat::Png, "png"),
+            (OutFormat::Jpeg, "jpeg"),
+            (OutFormat::Bmp, "bmp"),
+            (OutFormat::Gif, "gif"),
+        ];
+        for (format, id) in formats {
+            let params = Params::new().with("format", id);
+            let err = convert_one(params, picture_as(format, 8, 8, 255, "a.xyz")).unwrap_err();
+            assert!(err.to_string().starts_with("a.xyz: already in "), "{format:?}: {err}");
+        }
+        // Detection goes by content: a JPEG named `.png` is still a JPEG.
+        let item = picture_as(OutFormat::Jpeg, 8, 8, 255, "fake.png");
+        assert!(convert_one(Params::new().with("format", "jpeg"), item.clone()).is_err());
+        assert!(convert_one(Params::new().with("format", "png"), item).is_ok());
     }
 
     #[test]

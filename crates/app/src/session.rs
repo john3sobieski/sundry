@@ -209,6 +209,16 @@ impl Session {
         if self.running.get() || index >= self.rows.row_count() {
             return;
         }
+        if let Some(row) = self.rows.row_data(index) {
+            match row.status.as_str() {
+                "ok" => self.done.set(self.done.get().saturating_sub(1)),
+                "error" => {
+                    self.done.set(self.done.get().saturating_sub(1));
+                    self.failed.set(self.failed.get().saturating_sub(1));
+                }
+                _ => {}
+            }
+        }
         self.files.borrow_mut().remove(index);
         self.rows.remove(index);
         self.results.borrow_mut().remove(index);

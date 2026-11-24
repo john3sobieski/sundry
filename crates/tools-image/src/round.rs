@@ -15,8 +15,8 @@ pub struct RoundCorners;
 /// Formats without an alpha channel cannot hold the transparent corners.
 const NO_ALPHA: &[&str] = &["jpeg", "bmp", "gif"];
 
-/// Share of the picture that can be rounded: a radius of half the shorter side is a full circle.
-const MAX_PERCENT: f64 = 50.0;
+/// 100 % is the largest radius that fits: half of the shorter side (a circle on a square).
+const MAX_PERCENT: f64 = 100.0;
 
 /// Alpha of one pixel of the top-left corner (0 = outside the arc, 1 = inside).
 fn coverage(x: u32, y: u32, radius: f64) -> f64 {
@@ -81,7 +81,7 @@ pub fn round_corners(image: &mut RgbaImage, radius: f64, corners: Corners) {
 #[derive(Clone, Copy)]
 enum Radius {
     Px(f64),
-    /// Percent of the shorter side.
+    /// Percent of the largest radius that fits; 100 rounds the picture fully.
     Percent(f64),
 }
 
@@ -89,7 +89,7 @@ impl Radius {
     fn pixels(self, size: (u32, u32)) -> f64 {
         match self {
             Radius::Px(value) => value,
-            Radius::Percent(value) => value / 100.0 * f64::from(size.0.min(size.1)),
+            Radius::Percent(value) => value / 100.0 * f64::from(size.0.min(size.1)) / 2.0,
         }
     }
 }
@@ -165,7 +165,7 @@ impl Tool for RoundCorners {
             ParamSpec::choice("unit", &["px", "percent"], "px"),
             ParamSpec::int_range("radius_px", 24, 0, i64::from(MAX_SIDE))
                 .show_when("unit", &["px"]),
-            ParamSpec::float_range("radius_percent", 10.0, 0.0, MAX_PERCENT)
+            ParamSpec::float_range("radius_percent", 20.0, 0.0, MAX_PERCENT)
                 .show_when("unit", &["percent"]),
             ParamSpec::boolean("top_left", true),
             ParamSpec::boolean("top_right", true),
@@ -321,14 +321,31 @@ mod tests {
     }
 
     #[test]
-    fn percent_is_taken_from_the_shorter_side() {
-        // 50 % of 60 px is a radius of 30: the 200x60 picture gets round ends.
-        let params = Params::new().with("unit", "percent").with("radius_percent", 50.0);
+    fn full_percent_is_half_of_the_shorter_side() {
+        // 100 % of a 60 px side is a radius of 30: the 200x60 picture gets round ends.
+        let params = Params::new().with("unit", "percent").with("radius_percent", 100.0);
         let image = decoded(&run(params, picture(200, 60)).unwrap());
         assert_eq!(alpha(&image, 0, 0), 0);
         assert!(alpha(&image, 0, 30) > 200);
         assert_eq!(alpha(&image, 100, 0), 255);
         assert_eq!(alpha(&image, 100, 30), 255);
+    }
+
+    #[test]
+    fn percent_scales_the_radius_of_a_square() {
+        let at = |percent: f64| {
+            let params = Params::new().with("unit", "percent").with("radius_percent", percent);
+            decoded(&run(params, picture(100, 100)).unwrap())
+        };
+        // 100 % is a circle.
+        let circle = at(100.0);
+        assert_eq!((alpha(&circle, 0, 0), alpha(&circle, 50, 50)), (0, 255));
+        assert_eq!(alpha(&circle, 10, 10), 0);
+        // 50 % is a radius of 25 px: (3, 3) lies outside the arc, (30, 30) inside.
+        let half = at(50.0);
+        assert_eq!((alpha(&half, 3, 3), alpha(&half, 30, 30)), (0, 255));
+        // 0 % changes nothing.
+        assert_eq!(alpha(&at(0.0), 0, 0), 255);
     }
 
     #[test]
@@ -344,7 +361,7 @@ mod tests {
         for id in NO_ALPHA {
             assert!(run(Params::new().with("format", *id), picture(8, 8)).is_err(), "{id}");
         }
-        let too_big = Params::new().with("unit", "percent").with("radius_percent", 60.0);
+        let too_big = Params::new().with("unit", "percent").with("radius_percent", 150.0);
         assert!(run(too_big, picture(8, 8)).is_err());
         let wide = Params::new().with("format", "ico");
         let err = run(wide, picture(300, 10)).unwrap_err();

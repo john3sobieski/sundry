@@ -568,6 +568,14 @@ fn bind_run(ui: &AppWindow, shell: &Rc<Shell>) {
             }
         }
     });
+    workspace.on_remove_requested({
+        let (shell, weak) = (Rc::clone(shell), ui.as_weak());
+        move |i| {
+            if let (Some(i), Some(ui)) = (index_of(i), weak.upgrade()) {
+                shell.session.remove(&ui, i);
+            }
+        }
+    });
     workspace.on_save_one({
         let (shell, weak) = (Rc::clone(shell), ui.as_weak());
         move || shell.session.save_selected(weak.clone())

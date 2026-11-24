@@ -54,6 +54,7 @@ export global Workspace {
     in-out property <int> archive-index: 0;
 
     callback file-selected(int);
+    callback remove-requested(int);
     callback add-requested();
     callback clear-requested();
     callback save-one();
@@ -63,7 +64,9 @@ export global Workspace {
 component FileItem inherits Rectangle {
     in property <FileRow> entry;
     in property <bool> selected;
+    in property <bool> can-remove: true;
     callback clicked();
+    callback remove();
 
     height: 46px;
     background: area.has-hover ? Theme.raised : transparent;
@@ -102,6 +105,26 @@ component FileItem inherits Rectangle {
                 text: Strings.file-status(root.entry.status);
                 color: root.entry.status == "ok" ? Theme.success : Theme.error;
                 font-size: Theme.fs-small;
+            }
+
+            // Removes this file from the batch.
+            if root.can-remove: Rectangle {
+                width: 22px;
+                height: 22px;
+                background: remove-area.has-hover ? Theme.divider : transparent;
+                animate background { duration: Theme.anim; easing: ease-out; }
+
+                Text {
+                    text: "×";
+                    color: remove-area.has-hover ? Theme.text : Theme.text-2;
+                    font-size: Theme.fs-medium;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                remove-area := TouchArea {
+                    clicked => { root.remove(); }
+                }
             }
         }
 
@@ -271,7 +294,9 @@ export component ImageWorkspace inherits Rectangle {
                         for entry[index] in Workspace.files: FileItem {
                             entry: entry;
                             selected: index == Workspace.selected;
+                            can-remove: !root.running;
                             clicked => { Workspace.file-selected(index); }
+                            remove => { Workspace.remove-requested(index); }
                         }
                     }
                 }

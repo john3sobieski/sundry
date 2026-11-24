@@ -40,10 +40,10 @@ Convert images to WebP:
 cargo run -p sundry-cli -- image.convert -i a.png -i b.jpg -p format=webp -o out/
 ```
 
-Round corners (radius 10 % of the shorter side):
+Round corners (radius 20 %; 100 % makes a circle from a square picture):
 
 ```
-cargo run -p sundry-cli -- image.round_corners -i a.jpg -p unit=percent -p radius_percent=10 -o out/
+cargo run -p sundry-cli -- image.round_corners -i a.jpg -p unit=percent -p radius_percent=20 -o out/
 ```
 
 Example (data size converter):

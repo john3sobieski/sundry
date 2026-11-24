@@ -202,8 +202,8 @@ msgstr "Единица радиуса"
 msgid "Radius, px"
 msgstr "Радиус, px"
 
-msgid "Radius, % of shorter side"
-msgstr "Радиус, % от короткой стороны"
+msgid "Radius, % (100 = fully round)"
+msgstr "Радиус, % (100 = полное скругление)"
 
 msgid "Top left corner"
 msgstr "Левый верхний угол"

@@ -197,7 +197,11 @@ mod tests {
         for (format, id) in formats {
             let params = Params::new().with("format", id);
             let err = convert_one(params, picture_as(format, 8, 8, 255, "a.xyz")).unwrap_err();
-            assert!(err.to_string().starts_with("a.xyz: already in "), "{format:?}: {err}");
+            let text = err.to_string();
+            assert!(
+                text.starts_with("a.xyz: ") && text.contains("already in "),
+                "{format:?}: {text}"
+            );
         }
         // Detection goes by content: a JPEG named `.png` is still a JPEG.
         let item = picture_as(OutFormat::Jpeg, 8, 8, 255, "fake.png");

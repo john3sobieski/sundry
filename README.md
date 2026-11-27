@@ -53,6 +53,12 @@ cargo run -p sundry-cli -- image.crop -i a.jpg -p ratio=16:9 -o out/
 cargo run -p sundry-cli -- image.crop -i a.jpg -p mode=box -p x=100 -p y=50 -p width=800 -p height=600 -o out/
 ```
 
+Rotate by 90 degrees clockwise, or by any angle (`-p angle=custom -p degrees=15`):
+
+```
+cargo run -p sundry-cli -- image.rotate -i a.jpg -p angle=90 -o out/
+```
+
 Example (data size converter):
 
 ```

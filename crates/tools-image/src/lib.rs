@@ -6,6 +6,7 @@ pub mod crop;
 pub mod plan;
 pub mod preview;
 pub mod resize;
+pub mod rotate;
 pub mod round;
 
 use sundry_core::{Error, Input, Item, Job, Output, Registry, Result};
@@ -14,7 +15,8 @@ pub fn register(registry: &mut Registry) -> Result<()> {
     registry.register(resize::Resize)?;
     registry.register(convert::Convert)?;
     registry.register(round::RoundCorners)?;
-    registry.register(crop::Crop)
+    registry.register(crop::Crop)?;
+    registry.register(rotate::Rotate)
 }
 
 /// Runs `f` on every item in order; errors get the file name as a prefix.

@@ -111,7 +111,7 @@ fn boxed(src: (u32, u32), (width, height): (u32, u32), fit: Fit, no_upscale: boo
     }
 }
 
-fn check_size(out: (u32, u32)) -> Result<()> {
+pub(crate) fn check_size(out: (u32, u32)) -> Result<()> {
     if out.0 > MAX_SIDE || out.1 > MAX_SIDE || u64::from(out.0) * u64::from(out.1) > MAX_PIXELS {
         return Err(Error::InvalidInput(format!(
             "the result would be too large ({}x{} pixels)",

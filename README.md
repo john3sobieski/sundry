@@ -46,6 +46,13 @@ Round corners (radius 20 %; 100 % makes a circle from a square picture):
 cargo run -p sundry-cli -- image.round_corners -i a.jpg -p unit=percent -p radius_percent=20 -o out/
 ```
 
+Crop to a 16:9 frame (centered), or cut a rectangle (x, y, width, height in pixels):
+
+```
+cargo run -p sundry-cli -- image.crop -i a.jpg -p ratio=16:9 -o out/
+cargo run -p sundry-cli -- image.crop -i a.jpg -p mode=box -p x=100 -p y=50 -p width=800 -p height=600 -o out/
+```
+
 Example (data size converter):
 
 ```

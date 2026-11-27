@@ -9,7 +9,7 @@ use image::{
     DynamicImage, ExtendedColorType, ImageDecoder, ImageEncoder, ImageError, ImageFormat,
     ImageReader, Limits, Rgb, RgbImage, RgbaImage,
 };
-use sundry_core::{Error, Result};
+use sundry_core::{Error, Item, ParamSpec, Params, Result};
 
 /// File extensions the picker and drag-and-drop accept (lowercase, no dot).
 /// AVIF is listed so that such files show a clear error instead of vanishing.
@@ -261,6 +261,53 @@ pub fn encode(
         }
     }
     Ok(out)
+}
+
+/// Output settings of the tools that keep the input format by default.
+pub struct Target {
+    format: Option<OutFormat>,
+    quality: u8,
+}
+
+impl Target {
+    /// The `format` (`keep` = format of the input file) and `quality` parameters.
+    pub fn specs() -> Vec<ParamSpec> {
+        let mut formats = vec!["keep"];
+        formats.extend_from_slice(OutFormat::IDS);
+        vec![
+            ParamSpec::choice("format", &formats, "keep"),
+            ParamSpec::int_range("quality", 90, 1, 100)
+                .show_when("format", &["keep", "jpeg", "avif"]),
+        ]
+    }
+
+    pub fn from_params(params: &Params) -> Result<Self> {
+        let format = match params.get_text("format")? {
+            "keep" => None,
+            id => Some(OutFormat::parse(id).ok_or_else(|| Error::InvalidParam {
+                name: "format".to_owned(),
+                reason: "unknown".to_owned(),
+            })?),
+        };
+        let quality = u8::try_from(params.get_int("quality")?.clamp(1, 100)).unwrap_or(90);
+        Ok(Self { format, quality })
+    }
+
+    /// Encodes `image` as a file named after `name`. `source` is the format of the input
+    /// file: it is kept when it can be written back, otherwise the result is PNG.
+    pub fn encode(
+        &self,
+        image: RgbaImage,
+        source: Option<ImageFormat>,
+        name: Option<&str>,
+        background: [u8; 4],
+    ) -> Result<Item> {
+        let format = self.format.unwrap_or_else(|| {
+            source.and_then(OutFormat::from_image_format).unwrap_or(OutFormat::Png)
+        });
+        let data = encode(image, format, self.quality, background)?;
+        Ok(Item::bytes(data).named(output_name(name, format)))
+    }
 }
 
 #[cfg(test)]

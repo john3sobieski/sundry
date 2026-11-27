@@ -369,3 +369,63 @@ msgstr "Скачать изображение"
 
 msgid "Packing the archive..."
 msgstr "Упаковка архива..."
+
+msgid "Crop image"
+msgstr "Обрезка изображения"
+
+msgid "Cuts a part out of images: a rectangle, margins trimmed from the sides, or the biggest part with a given aspect ratio. One file or a whole batch. Metadata is dropped and animations keep only their first frame."
+msgstr "Вырезает часть изображения: прямоугольник, обрезка полей с краёв или самая большая часть с заданным соотношением сторон. Один файл или целая пачка. Метаданные удаляются, у анимации остаётся только первый кадр."
+
+msgid "Turns images by 90, 180 or 270 degrees without any loss, or by a custom angle with a smooth edge. One file or a whole batch. Metadata is dropped and animations keep only their first frame."
+msgstr "Поворачивает изображения на 90, 180 или 270 градусов без потерь либо на произвольный угол со сглаженным краем. Один файл или целая пачка. Метаданные удаляются, у анимации остаётся только первый кадр."
+
+msgid "Mirrors images left-right or top-bottom, one file or a whole batch. Metadata is dropped and animations keep only their first frame."
+msgstr "Отражает изображения слева направо или сверху вниз: один файл или целая пачка. Метаданные удаляются, у анимации остаётся только первый кадр."
+
+msgid "Crop position"
+msgstr "Положение области"
+
+msgid "Unit"
+msgstr "Единица"
+
+msgid "Left offset (X)"
+msgstr "Отступ слева (X)"
+
+msgid "Top offset (Y)"
+msgstr "Отступ сверху (Y)"
+
+msgid "Width"
+msgstr "Ширина"
+
+msgid "Height"
+msgstr "Высота"
+
+msgid "Trim from left"
+msgstr "Обрезать слева"
+
+msgid "Trim from top"
+msgstr "Обрезать сверху"
+
+msgid "Trim from right"
+msgstr "Обрезать справа"
+
+msgid "Trim from bottom"
+msgstr "Обрезать снизу"
+
+msgid "Aspect ratio"
+msgstr "Соотношение сторон"
+
+msgid "Area (offset and size)"
+msgstr "Область (отступ и размер)"
+
+msgid "Trim from edges"
+msgstr "Обрезка полей"
+
+msgid "Center"
+msgstr "По центру"
+
+msgid "Start (left or top)"
+msgstr "К началу (слева или сверху)"
+
+msgid "End (right or bottom)"
+msgstr "К концу (справа или снизу)"

@@ -19,6 +19,7 @@ export global Strings {
         if (id == "image.resize") { return @tr("Resize image"); }
         if (id == "image.convert") { return @tr("Convert image"); }
         if (id == "image.round_corners") { return @tr("Round corners"); }
+        if (id == "image.crop") { return @tr("Crop image"); }
         return fallback;
     }
 
@@ -27,6 +28,7 @@ export global Strings {
         if (id == "image.resize") { return @tr("Changes the size or proportion of images, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.convert") { return @tr("Converts images between PNG, JPEG, WebP, AVIF, BMP, GIF, TIFF and ICO, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.round_corners") { return @tr("Rounds all or only chosen corners of images with a smooth transparent edge, one file or a whole batch. The result needs a format with transparency. Metadata is dropped and animations keep only their first frame."); }
+        if (id == "image.crop") { return @tr("Cuts a part out of images: a rectangle, margins trimmed from the sides, or the biggest part with a given aspect ratio. One file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         return fallback;
     }
 
@@ -65,7 +67,36 @@ export global Strings {
             if (param == "format") { return @tr("Output format"); }
             if (param == "quality") { return @tr("Quality (AVIF)"); }
         }
+        if (tool == "image.crop") {
+            if (param == "mode") { return @tr("Mode"); }
+            if (param == "ratio") { return @tr("Aspect ratio (like 16:9)"); }
+            if (param == "anchor") { return @tr("Crop position"); }
+            if (param == "unit") { return @tr("Unit"); }
+            if (param == "x") { return @tr("Left offset (X)"); }
+            if (param == "y") { return @tr("Top offset (Y)"); }
+            if (param == "width") { return @tr("Width"); }
+            if (param == "height") { return @tr("Height"); }
+            if (param == "left") { return @tr("Trim from left"); }
+            if (param == "top") { return @tr("Trim from top"); }
+            if (param == "right") { return @tr("Trim from right"); }
+            if (param == "bottom") { return @tr("Trim from bottom"); }
+            if (param == "format") { return @tr("Output format"); }
+            if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
+        }
         return fallback;
+    }
+
+    pure function format-option(option: string) -> string {
+        if (option == "keep") { return @tr("Keep original"); }
+        if (option == "png") { return "PNG"; }
+        if (option == "jpeg") { return "JPEG"; }
+        if (option == "webp") { return "WebP"; }
+        if (option == "avif") { return "AVIF"; }
+        if (option == "bmp") { return "BMP"; }
+        if (option == "gif") { return "GIF"; }
+        if (option == "tiff") { return "TIFF"; }
+        if (option == "ico") { return "ICO"; }
+        return option;
     }
 
     // Labels of choice options; options without a branch show their id.
@@ -129,6 +160,19 @@ export global Strings {
             if (option == "avif") { return "AVIF"; }
             if (option == "tiff") { return "TIFF"; }
             if (option == "ico") { return "ICO"; }
+        }
+        if (tool == "image.crop" && param == "format") {
+            return format-option(option);
+        }
+        if (tool == "image.crop") {
+            if (option == "ratio") { return @tr("Aspect ratio"); }
+            if (option == "box") { return @tr("Area (offset and size)"); }
+            if (option == "margins") { return @tr("Trim from edges"); }
+            if (option == "center") { return @tr("Center"); }
+            if (option == "start") { return @tr("Start (left or top)"); }
+            if (option == "end") { return @tr("End (right or bottom)"); }
+            if (option == "px") { return @tr("Pixels"); }
+            if (option == "percent") { return @tr("Percent"); }
         }
         return option;
     }

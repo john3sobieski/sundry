@@ -3,6 +3,7 @@
 pub mod codec;
 pub mod convert;
 pub mod crop;
+pub mod flip;
 pub mod plan;
 pub mod preview;
 pub mod resize;
@@ -16,7 +17,8 @@ pub fn register(registry: &mut Registry) -> Result<()> {
     registry.register(convert::Convert)?;
     registry.register(round::RoundCorners)?;
     registry.register(crop::Crop)?;
-    registry.register(rotate::Rotate)
+    registry.register(rotate::Rotate)?;
+    registry.register(flip::Flip)
 }
 
 /// Runs `f` on every item in order; errors get the file name as a prefix.

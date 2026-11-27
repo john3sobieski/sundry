@@ -376,6 +376,9 @@ msgstr "Обрезка изображения"
 msgid "Rotate image"
 msgstr "Поворот изображения"
 
+msgid "Flip image"
+msgstr "Отражение изображения"
+
 msgid "Cuts a part out of images: a rectangle, margins trimmed from the sides, or the biggest part with a given aspect ratio. One file or a whole batch. Metadata is dropped and animations keep only their first frame."
 msgstr "Вырезает часть изображения: прямоугольник, обрезка полей с краёв или самая большая часть с заданным соотношением сторон. Один файл или целая пачка. Метаданные удаляются, у анимации остаётся только первый кадр."
 
@@ -427,6 +430,9 @@ msgstr "Увеличить холст, чтобы всё влезло"
 msgid "Fill color"
 msgstr "Цвет заливки"
 
+msgid "Direction"
+msgstr "Направление"
+
 msgid "Aspect ratio"
 msgstr "Соотношение сторон"
 
@@ -453,3 +459,9 @@ msgstr "90° против часовой"
 
 msgid "Custom angle"
 msgstr "Свой угол"
+
+msgid "Horizontal (left-right)"
+msgstr "По горизонтали (лево-право)"
+
+msgid "Vertical (top-bottom)"
+msgstr "По вертикали (верх-низ)"

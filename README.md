@@ -59,6 +59,12 @@ Rotate by 90 degrees clockwise, or by any angle (`-p angle=custom -p degrees=15`
 cargo run -p sundry-cli -- image.rotate -i a.jpg -p angle=90 -o out/
 ```
 
+Mirror left-right (`vertical` flips top-bottom):
+
+```
+cargo run -p sundry-cli -- image.flip -i a.jpg -p direction=horizontal -o out/
+```
+
 Example (data size converter):
 
 ```

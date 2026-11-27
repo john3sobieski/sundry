@@ -21,6 +21,7 @@ export global Strings {
         if (id == "image.round_corners") { return @tr("Round corners"); }
         if (id == "image.crop") { return @tr("Crop image"); }
         if (id == "image.rotate") { return @tr("Rotate image"); }
+        if (id == "image.flip") { return @tr("Flip image"); }
         return fallback;
     }
 
@@ -31,6 +32,7 @@ export global Strings {
         if (id == "image.round_corners") { return @tr("Rounds all or only chosen corners of images with a smooth transparent edge, one file or a whole batch. The result needs a format with transparency. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.crop") { return @tr("Cuts a part out of images: a rectangle, margins trimmed from the sides, or the biggest part with a given aspect ratio. One file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.rotate") { return @tr("Turns images by 90, 180 or 270 degrees without any loss, or by a custom angle with a smooth edge. One file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
+        if (id == "image.flip") { return @tr("Mirrors images left-right or top-bottom, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         return fallback;
     }
 
@@ -90,6 +92,11 @@ export global Strings {
             if (param == "degrees") { return @tr("Angle, degrees (clockwise)"); }
             if (param == "expand") { return @tr("Enlarge canvas to fit"); }
             if (param == "background") { return @tr("Fill color"); }
+            if (param == "format") { return @tr("Output format"); }
+            if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
+        }
+        if (tool == "image.flip") {
+            if (param == "direction") { return @tr("Direction"); }
             if (param == "format") { return @tr("Output format"); }
             if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
         }
@@ -171,7 +178,7 @@ export global Strings {
             if (option == "tiff") { return "TIFF"; }
             if (option == "ico") { return "ICO"; }
         }
-        if ((tool == "image.crop" || tool == "image.rotate") && param == "format") {
+        if ((tool == "image.crop" || tool == "image.rotate" || tool == "image.flip") && param == "format") {
             return format-option(option);
         }
         if (tool == "image.crop") {
@@ -189,6 +196,10 @@ export global Strings {
             if (option == "180") { return "180°"; }
             if (option == "270") { return @tr("90° counterclockwise"); }
             if (option == "custom") { return @tr("Custom angle"); }
+        }
+        if (tool == "image.flip") {
+            if (option == "horizontal") { return @tr("Horizontal (left-right)"); }
+            if (option == "vertical") { return @tr("Vertical (top-bottom)"); }
         }
         return option;
     }

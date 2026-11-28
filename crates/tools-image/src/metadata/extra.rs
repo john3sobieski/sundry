@@ -18,8 +18,7 @@ pub(crate) fn xmp_props(xml: &str) -> Vec<(String, String)> {
         if tag.starts_with('?') || tag.starts_with('!') {
             continue;
         }
-        if tag.starts_with('/') {
-            let name = &tag[1..];
+        if let Some(name) = tag.strip_prefix('/') {
             if !name.starts_with("rdf:") {
                 list = None;
             }
@@ -28,13 +27,13 @@ pub(crate) fn xmp_props(xml: &str) -> Vec<(String, String)> {
         let name = tag.split_whitespace().next().unwrap_or("");
         let text = decode_entities(rest.trim());
         if name == "rdf:li" {
-            if let Some(i) = list {
-                if !text.is_empty() {
-                    if !out[i].1.is_empty() {
-                        out[i].1.push_str(", ");
-                    }
-                    out[i].1.push_str(&text);
+            if let Some(i) = list
+                && !text.is_empty()
+            {
+                if !out[i].1.is_empty() {
+                    out[i].1.push_str(", ");
                 }
+                out[i].1.push_str(&text);
             }
             continue;
         }
@@ -160,7 +159,8 @@ fn icc_description(p: &[u8]) -> Option<String> {
             let len = be32(data, 20)?;
             let at = be32(data, 24)?;
             let raw = data.get(at..at.checked_add(len)?)?;
-            let units = raw.chunks_exact(2).map(|c| u16::from_be_bytes([c[0], c[1]]));
+            let (pairs, _) = raw.as_chunks::<2>();
+            let units = pairs.iter().map(|c| u16::from_be_bytes(*c));
             return Some(char::decode_utf16(units).map(|r| r.unwrap_or('?')).collect());
         }
     }

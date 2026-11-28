@@ -232,10 +232,10 @@ impl Walk<'_> {
                 self.zero(s, en);
             }
         }
-        if let (Some(p), Some(l)) = (pos, len) {
-            if let Some(end) = p.checked_add(l) {
-                self.zero(p, end);
-            }
+        if let (Some(p), Some(l)) = (pos, len)
+            && let Some(end) = p.checked_add(l)
+        {
+            self.zero(p, end);
         }
         self.zero(off, table_end);
         Ok(())
@@ -256,17 +256,18 @@ impl Walk<'_> {
                 (Ctx::Exif, 0xA005) => Some(Ctx::Interop),
                 _ => None,
             };
-            if let Some(child_ctx) = child {
-                if e.kind == 4 && e.count == 1 {
-                    let child_off = e.value as usize;
-                    let left = self.process_ifd(child_off, child_ctx, ifd, depth + 1)?;
-                    if left == 0 {
-                        self.zero(child_off, child_off + 6);
-                        continue;
-                    }
-                    kept.push(e);
+            if let Some(child_ctx) = child
+                && e.kind == 4
+                && e.count == 1
+            {
+                let child_off = e.value as usize;
+                let left = self.process_ifd(child_off, child_ctx, ifd, depth + 1)?;
+                if left == 0 {
+                    self.zero(child_off, child_off + 6);
                     continue;
                 }
+                kept.push(e);
+                continue;
             }
             if self.decide(ctx, ifd, e.tag) {
                 self.removed.push(tag_label(ctx, ifd, e.tag));

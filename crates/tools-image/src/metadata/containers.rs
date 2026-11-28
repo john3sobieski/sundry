@@ -130,8 +130,7 @@ fn jpeg_block(marker: u8, body: &[u8]) -> (Kind, usize, String) {
 fn jpeg(b: &[u8]) -> Result<Doc> {
     let mut pieces = vec![Piece::keep(0, 2, "SOI")];
     let mut pos = 2;
-    let mut trailer = 0;
-    loop {
+    let trailer = loop {
         if pos + 4 > b.len() || b[pos] != 0xFF {
             return Err(damaged("JPEG"));
         }
@@ -147,8 +146,7 @@ fn jpeg(b: &[u8]) -> Result<Doc> {
         if marker == 0xDA {
             // Start of scan: the rest is picture data.
             pieces.push(Piece::keep(pos, b.len(), "SOS + picture data"));
-            trailer = jpeg_trailer(b, end);
-            break;
+            break jpeg_trailer(b, end);
         }
         let body = &b[pos + 4..end];
         let head = pos + 4;
@@ -165,7 +163,7 @@ fn jpeg(b: &[u8]) -> Result<Doc> {
         piece.data_end = end;
         pieces.push(piece);
         pos = end;
-    }
+    };
     Ok(Doc { fmt: Fmt::Jpeg, pieces, trailer })
 }
 

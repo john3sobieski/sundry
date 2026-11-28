@@ -1,6 +1,6 @@
 [package]
 name = "sundry-tools-image"
-description = "Image tools for Sundry: resize, convert, round corners, crop, rotate, flip and, later, compress"
+description = "Image tools for Sundry: resize, convert, round corners, crop, rotate, flip, metadata and, later, compress"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,6 +16,7 @@ avif = ["image/avif"]
 [dependencies]
 sundry-core.workspace = true
 fast_image_resize.workspace = true
+kamadak-exif.workspace = true
 image.workspace = true
 
 [lints]

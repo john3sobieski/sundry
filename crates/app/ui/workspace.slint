@@ -5,6 +5,7 @@ import { SButton } from "components/button.slint";
 import { SSelect } from "components/select.slint";
 import { SSwitch } from "components/switch.slint";
 import { ImageViewer } from "components/viewer.slint";
+import { ReportViewer } from "components/report.slint";
 import { FormField, FormRow } from "form.slint";
 
 // One input file in the batch list. `status` is pending | ok | error; `detail`
@@ -34,6 +35,9 @@ export global Workspace {
     // "" (no file) | waiting (not processed yet) | loading | ready | error
     in property <string> output-state;
     in property <string> output-error;
+    // Tools with a report (image metadata) show text instead of a picture on the right.
+    in property <bool> report-mode: false;
+    in property <string> output-report;
 
     in-out property <float> in-zoom: 1;
     in-out property <float> in-cx: 0.5;
@@ -382,6 +386,7 @@ export component ImageWorkspace inherits Rectangle {
                 }
 
                 output-viewer := ImageViewer {
+                    visible: !Workspace.report-mode;
                     x: root.wide ? root.vw + 8px : 0;
                     y: root.wide ? 0 : viewers.vh + 8px;
                     width: root.vw;
@@ -403,6 +408,20 @@ export component ImageWorkspace inherits Rectangle {
                             Workspace.in-cy = Workspace.out-cy;
                         }
                     }
+                }
+
+                report-viewer := ReportViewer {
+                    visible: Workspace.report-mode;
+                    x: root.wide ? root.vw + 8px : 0;
+                    y: root.wide ? 0 : viewers.vh + 8px;
+                    width: root.vw;
+                    height: viewers.vh;
+                    title: @tr("Metadata");
+                    text: Workspace.output-report;
+                    loaded: Workspace.output-state == "ready";
+                    info: Workspace.output-info;
+                    message: Strings.viewer-message("report", Workspace.output-state, Workspace.output-error);
+                    message-kind: Workspace.output-state;
                 }
             }
 

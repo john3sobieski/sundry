@@ -84,6 +84,9 @@ pub enum Media {
     None,
     /// Raster images in, raster images out (previews, before/after view).
     Image,
+    /// Raster images in, a text report out (plus a cleaned file for some runs):
+    /// the result window shows the report instead of a picture.
+    ImageMetadata,
 }
 
 impl Media {
@@ -92,7 +95,13 @@ impl Media {
         match self {
             Media::None => "none",
             Media::Image => "image",
+            Media::ImageMetadata => "image-metadata",
         }
+    }
+
+    /// Whether the files are pictures (the workspace view, image file filters).
+    pub fn has_images(self) -> bool {
+        matches!(self, Media::Image | Media::ImageMetadata)
     }
 }
 
@@ -194,5 +203,6 @@ mod tests {
         let info = info.with_media(Media::Image).per_file();
         assert_eq!(info.media.as_str(), "image");
         assert!(info.per_file);
+        assert!(Media::ImageMetadata.has_images() && !Media::None.has_images());
     }
 }

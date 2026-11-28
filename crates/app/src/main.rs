@@ -139,6 +139,7 @@ impl Shell {
         self.fields.set_vec(specs.iter().map(field_of).collect::<Vec<_>>());
         *self.form.borrow_mut() = Form { tool_id: id.to_owned(), specs, values, shown: Vec::new() };
         self.refresh_visibility();
+        self.session.set_report_mode(ui, entry.info().media == Media::ImageMetadata);
     }
 
     /// Shows or hides fields that depend on other fields (see `ParamSpec::show_when`).
@@ -206,7 +207,7 @@ impl Shell {
         if !self.input_kind().accepts_files() {
             return;
         }
-        self.session.add(ui, paths, self.media() == Media::Image);
+        self.session.add(ui, paths, self.media().has_images());
     }
 
     /// Validates the form and starts the tool on a background thread.
@@ -500,7 +501,7 @@ fn request_files(shell: &Rc<Shell>, weak: slint::Weak<AppWindow>) {
     // dropped on purpose, which detaches the task.
     let _ = slint::spawn_local(async move {
         let mut dialog = rfd::AsyncFileDialog::new();
-        if shell.media() == Media::Image {
+        if shell.media().has_images() {
             dialog = dialog.add_filter("Images", sundry_tools_image::codec::INPUT_EXTENSIONS);
         }
         if let Some(files) = dialog.pick_files().await

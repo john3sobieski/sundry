@@ -153,7 +153,7 @@ export component AppWindow inherits Window {
     in-out property <string> input-text: "";
     in property <[FileRow]> input-files;
     // Image tools replace the three-column layout with a full-width workspace.
-    out property <bool> workspace: root.has-current-tool && root.current-tool.media == "image";
+    out property <bool> workspace: root.has-current-tool && (root.current-tool.media == "image" || root.current-tool.media == "image-metadata");
     in property <bool> running: false;
     in property <float> progress: 0;
     // kind: "" (none) | text | error | cancelled | empty | binary

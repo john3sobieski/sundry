@@ -22,6 +22,7 @@ export global Strings {
         if (id == "image.crop") { return @tr("Crop image"); }
         if (id == "image.rotate") { return @tr("Rotate image"); }
         if (id == "image.flip") { return @tr("Flip image"); }
+        if (id == "image.metadata") { return @tr("Image metadata"); }
         return fallback;
     }
 
@@ -33,6 +34,7 @@ export global Strings {
         if (id == "image.crop") { return @tr("Cuts a part out of images: a rectangle, margins trimmed from the sides, or the biggest part with a given aspect ratio. One file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.rotate") { return @tr("Turns images by 90, 180 or 270 degrees without any loss, or by a custom angle with a smooth edge. One file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
         if (id == "image.flip") { return @tr("Mirrors images left-right or top-bottom, one file or a whole batch. Metadata is dropped and animations keep only their first frame."); }
+        if (id == "image.metadata") { return @tr("Shows everything a picture file carries (EXIF, GPS, XMP, IPTC, colour profile, comments) in detail and removes only the selected parts. The picture itself is not re-encoded, so nothing is lost. Removal works for JPEG, PNG and WebP."); }
         return fallback;
     }
 
@@ -99,6 +101,24 @@ export global Strings {
             if (param == "direction") { return @tr("Direction"); }
             if (param == "format") { return @tr("Output format"); }
             if (param == "quality") { return @tr("Quality (JPEG, AVIF)"); }
+        }
+        if (tool == "image.metadata") {
+            if (param == "mode") { return @tr("Mode"); }
+            if (param == "preset") { return @tr("What to remove"); }
+            if (param == "gps") { return @tr("GPS location"); }
+            if (param == "datetime") { return @tr("Dates and times"); }
+            if (param == "device") { return @tr("Camera, lens and software"); }
+            if (param == "author") { return @tr("Author, owner and description"); }
+            if (param == "settings") { return @tr("Shooting settings (exposure, ISO, flash)"); }
+            if (param == "thumbnail") { return @tr("Embedded thumbnail"); }
+            if (param == "makernote") { return @tr("MakerNote (vendor data)"); }
+            if (param == "exif_other") { return @tr("Other EXIF fields"); }
+            if (param == "xmp") { return @tr("XMP data"); }
+            if (param == "iptc") { return @tr("IPTC / Photoshop data"); }
+            if (param == "comments") { return @tr("Comments and text chunks"); }
+            if (param == "icc") { return @tr("Colour profile (changes colours)"); }
+            if (param == "orientation") { return @tr("Rotation flag (changes how the picture is shown)"); }
+            if (param == "tags") { return @tr("Also remove these EXIF tags (names or 0x numbers, comma separated)"); }
         }
         return fallback;
     }
@@ -197,6 +217,13 @@ export global Strings {
             if (option == "270") { return @tr("90° counterclockwise"); }
             if (option == "custom") { return @tr("Custom angle"); }
         }
+        if (tool == "image.metadata") {
+            if (option == "view") { return @tr("View metadata"); }
+            if (option == "remove") { return @tr("Remove metadata"); }
+            if (option == "privacy") { return @tr("Privacy (recommended)"); }
+            if (option == "all") { return @tr("Everything (except colour profile and rotation)"); }
+            if (option == "custom") { return @tr("Custom selection"); }
+        }
         if (tool == "image.flip") {
             if (option == "horizontal") { return @tr("Horizontal (left-right)"); }
             if (option == "vertical") { return @tr("Vertical (top-bottom)"); }
@@ -254,6 +281,7 @@ export global Strings {
         if (state == "error") { return error; }
         if (which == "input") { return @tr("Add images to see them here."); }
         if (state == "waiting") { return @tr("Not processed yet. Press Run."); }
+        if (which == "report") { return @tr("The metadata report appears here."); }
         return @tr("The processed image appears here.");
     }
 

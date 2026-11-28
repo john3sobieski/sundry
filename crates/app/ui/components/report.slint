@@ -1,0 +1,96 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+
+// The text panel that takes the place of the output picture for tools that
+// produce a report (image metadata). Same frame as ImageViewer; the text is
+// selectable and can be copied.
+export component ReportViewer inherits Rectangle {
+    in property <string> title;
+    in property <string> info;
+    in property <string> text;
+    in property <bool> loaded: false;
+    in property <string> message;
+    in property <string> message-kind;
+
+    background: Theme.surface;
+    border-width: 1px;
+    border-color: Theme.divider;
+    min-height: 120px;
+
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: 34px;
+
+        HorizontalLayout {
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            spacing: 6px;
+
+            Text {
+                text: root.title;
+                color: Theme.text;
+                font-size: Theme.fs-base;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            Text {
+                horizontal-stretch: 1;
+                text: root.info;
+                color: Theme.text-2;
+                font-family: Theme.mono;
+                font-size: Theme.fs-small;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.divider;
+        }
+    }
+
+    if root.loaded: ScrollView {
+        x: 0;
+        y: 35px;
+        width: root.width;
+        height: root.height - 35px;
+        content-width: self.visible-width;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+        VerticalLayout {
+            padding: 10px;
+            alignment: start;
+
+            TextInput {
+                text: root.text;
+                read-only: true;
+                wrap: word-wrap;
+                color: Theme.text;
+                font-family: Theme.mono;
+                font-size: Theme.fs-small;
+                selection-background-color: Theme.text;
+                selection-foreground-color: Theme.bg;
+            }
+        }
+    }
+
+    if !root.loaded: Text {
+        x: 16px;
+        y: 35px;
+        width: root.width - 32px;
+        height: root.height - 35px;
+        text: root.message;
+        color: root.message-kind == "error" ? Theme.error : Theme.text-3;
+        font-size: Theme.fs-base;
+        wrap: word-wrap;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}

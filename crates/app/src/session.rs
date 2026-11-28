@@ -20,6 +20,8 @@ pub struct ResultEntry {
     pub name: String,
     pub data: Vec<u8>,
     detail: String,
+    /// Text report shown in the right window instead of a picture (image metadata).
+    report: Option<String>,
 }
 
 enum Event {
@@ -123,17 +125,27 @@ fn deliver(
 }
 
 fn entry_of(output: Output) -> Result<ResultEntry, String> {
-    let item = output.items.into_iter().next().ok_or_else(|| "empty result".to_owned())?;
-    let data = match item.data {
-        Data::Bytes(bytes) => bytes,
-        other => other.as_bytes().to_vec(),
+    // A file (picture) and/or a text report; the first of each kind counts.
+    let mut file: Option<(Vec<u8>, Option<String>)> = None;
+    let mut report: Option<(String, Option<String>)> = None;
+    for item in output.items {
+        match item.data {
+            Data::Bytes(bytes) if file.is_none() => file = Some((bytes, item.name)),
+            Data::Text(text) if report.is_none() => report = Some((text, item.name)),
+            _ => {}
+        }
+    }
+    let (data, name, report) = match (file, report) {
+        (Some((bytes, name)), report) => (bytes, name, report.map(|r| r.0)),
+        (None, Some((text, name))) => (text.clone().into_bytes(), name, Some(text)),
+        (None, None) => return Err("empty result".to_owned()),
     };
     let weight = human_size(data.len() as u64);
     let detail = match preview::describe(&data) {
         Some(((w, h), _)) => format!("{w} \u{d7} {h} \u{b7} {weight}"),
         None => weight,
     };
-    Ok(ResultEntry { name: item.name.unwrap_or_else(|| "image".to_owned()), data, detail })
+    Ok(ResultEntry { name: name.unwrap_or_else(|| "image".to_owned()), data, detail, report })
 }
 
 fn set_note(weak: &slint::Weak<AppWindow>, kind: &str, arg: &str) {
@@ -248,6 +260,34 @@ impl Session {
         self.update_counts(ui);
     }
 
+    /// Switches the right window between picture and report. The results of the
+    /// other kind are stale, so they are dropped.
+    pub fn set_report_mode(&self, ui: &AppWindow, on: bool) {
+        let ws = ui.global::<Workspace>();
+        if ws.get_report_mode() == on {
+            return;
+        }
+        ws.set_report_mode(on);
+        if self.running.get() {
+            return;
+        }
+        self.results.borrow_mut().iter_mut().for_each(|r| *r = None);
+        for i in 0..self.rows.row_count() {
+            if let Some(mut row) = self.rows.row_data(i) {
+                row.status = "pending".into();
+                row.detail = "".into();
+                self.rows.set_row_data(i, row);
+            }
+        }
+        self.done.set(0);
+        self.failed.set(0);
+        match self.selected.get() {
+            Some(i) => self.show_output(ui, i, self.seq.load(Ordering::Relaxed)),
+            None => ws.set_output_state("".into()),
+        }
+        self.update_counts(ui);
+    }
+
     /// Empties both viewers and forgets the selection.
     fn clear_view(&self, ui: &AppWindow) {
         self.selected.set(None);
@@ -291,6 +331,12 @@ impl Session {
         let result = self.results.borrow().get(index).cloned().flatten();
         if let Some(entry) = result {
             ws.set_output_loaded(false);
+            if let Some(report) = &entry.report {
+                ws.set_output_report(report.as_str().into());
+                ws.set_output_info(entry.detail.as_str().into());
+                ws.set_output_state("ready".into());
+                return;
+            }
             ws.set_output_state("loading".into());
             let (weak, seq) = (ui.as_weak(), Arc::clone(&self.seq));
             std::thread::spawn(move || {

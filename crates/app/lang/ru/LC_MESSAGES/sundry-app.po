@@ -465,3 +465,75 @@ msgstr "По горизонтали (лево-право)"
 
 msgid "Vertical (top-bottom)"
 msgstr "По вертикали (верх-низ)"
+
+msgid "Image metadata"
+msgstr "Метаданные изображения"
+
+msgid "Shows everything a picture file carries (EXIF, GPS, XMP, IPTC, colour profile, comments) in detail and removes only the selected parts. The picture itself is not re-encoded, so nothing is lost. Removal works for JPEG, PNG and WebP."
+msgstr "Подробно показывает всё, что хранится в файле картинки (EXIF, GPS, XMP, IPTC, цветовой профиль, комментарии), и удаляет только выбранное. Сама картинка не перекодируется, поэтому качество не страдает. Удаление работает для JPEG, PNG и WebP."
+
+msgid "What to remove"
+msgstr "Что удалить"
+
+msgid "GPS location"
+msgstr "Геолокация (GPS)"
+
+msgid "Dates and times"
+msgstr "Даты и время"
+
+msgid "Camera, lens and software"
+msgstr "Камера, объектив и программа"
+
+msgid "Author, owner and description"
+msgstr "Автор, владелец и описание"
+
+msgid "Shooting settings (exposure, ISO, flash)"
+msgstr "Параметры съёмки (выдержка, ISO, вспышка)"
+
+msgid "Embedded thumbnail"
+msgstr "Встроенная миниатюра"
+
+msgid "MakerNote (vendor data)"
+msgstr "MakerNote (данные производителя)"
+
+msgid "Other EXIF fields"
+msgstr "Прочие поля EXIF"
+
+msgid "XMP data"
+msgstr "Данные XMP"
+
+msgid "IPTC / Photoshop data"
+msgstr "Данные IPTC / Photoshop"
+
+msgid "Comments and text chunks"
+msgstr "Комментарии и текстовые блоки"
+
+msgid "Colour profile (changes colours)"
+msgstr "Цветовой профиль (меняет цвета)"
+
+msgid "Rotation flag (changes how the picture is shown)"
+msgstr "Флаг поворота (меняет отображение картинки)"
+
+msgid "Also remove these EXIF tags (names or 0x numbers, comma separated)"
+msgstr "Дополнительно удалить EXIF-теги (имена или 0x-номера через запятую)"
+
+msgid "View metadata"
+msgstr "Посмотреть метаданные"
+
+msgid "Remove metadata"
+msgstr "Удалить метаданные"
+
+msgid "Privacy (recommended)"
+msgstr "Приватность (рекомендуется)"
+
+msgid "Everything (except colour profile and rotation)"
+msgstr "Всё (кроме цветового профиля и поворота)"
+
+msgid "Custom selection"
+msgstr "Свой выбор"
+
+msgid "Metadata"
+msgstr "Метаданные"
+
+msgid "The metadata report appears here."
+msgstr "Отчёт о метаданных появится здесь."
